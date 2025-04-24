@@ -30,8 +30,6 @@ async function healthCheck() {
   }
 }
 
-
-
 healthCheck().catch(console.error);
 
 export default drive;
