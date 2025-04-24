@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { DriveController } from "./google-drive.controller";
-import { DriveService } from "./google-drive.service";
+import { GoogleDriveController } from "./google-drive.controller";
+import { GoogleDriveService } from "./google-drive.service";
 
 @Module({
-    controllers: [DriveController],
-    providers: [DriveService],
+    controllers: [GoogleDriveController],
+    providers: [GoogleDriveService],
 })
-export class DriveModule {}
+export class GoogleDriveModule {}

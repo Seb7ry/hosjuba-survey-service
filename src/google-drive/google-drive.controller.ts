@@ -1,11 +1,11 @@
 import { Controller, Get, Param, Post, Query, StreamableFile, UploadedFile, UseInterceptors } from "@nestjs/common";
-import { DriveService } from "./google-drive.service";
+import { GoogleDriveService } from "./google-drive.service";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Express } from 'express';
 
 @Controller('drive')
-export class DriveController {
-    constructor(private readonly drive:DriveService){ }
+export class GoogleDriveController {
+    constructor(private readonly drive:GoogleDriveService){ }
 
     @Get('files')
     async listFiles(@Query('folder') folder: string) {

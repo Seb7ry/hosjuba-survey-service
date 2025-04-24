@@ -8,7 +8,7 @@ import { PassThrough, Readable } from "stream";
 require('dotenv').config();
 
 @Injectable()
-export class DriveService{
+export class GoogleDriveService{
     private drive: drive_v3.Drive;
 
     constructor(){
