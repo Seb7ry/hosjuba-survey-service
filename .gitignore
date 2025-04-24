@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# credentials Google
+credentials/*.json
+
 # Logs
 logs
 *.log
