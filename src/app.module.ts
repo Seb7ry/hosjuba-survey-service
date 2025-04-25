@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { UserModule } from './components/user/user.module';
 import { MongooseModule } from '@nestjs/mongoose';
-import { GoogleDriveModule } from './google-drive/google-drive.module';
+import { SQLServerModule } from './configurations/sql-server/sql.module';
+import { GoogleDriveModule } from './services/google-drive/google-drive.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
+import { AppController } from './app.controller';
+
+import { AppService } from './app.service';
 
 @Module({
   imports: [
+    UserModule,
+    SQLServerModule,
     GoogleDriveModule,
     ConfigModule.forRoot({
       isGlobal: true,

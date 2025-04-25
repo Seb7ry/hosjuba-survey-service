@@ -12,7 +12,7 @@ export class GoogleDriveService{
     private drive: drive_v3.Drive;
 
     constructor(){
-        const credentialsPath = path.join(__dirname, '../../credentials/google-drive-sa.json');
+        const credentialsPath = path.join(__dirname, '../../../credentials/google-drive-sa.json');
         const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
         const auth = new JWT ({
             email: credentials.client_email,
