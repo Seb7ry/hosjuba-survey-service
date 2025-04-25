@@ -7,14 +7,31 @@ import { Session, SessionDocument } from './session.model';
 export class SessionService {
     constructor(
         @InjectModel(Session.name) private sessionModel: Model<SessionDocument>){ }
+    
+    async findSession(username: string) {
+        return this.sessionModel.findOne({ _id: username }).exec();
+    }
 
     async createSession(accessToken: string, username: string, groupp: string, expiredDateAt: Date) {
-        const session = new this.sessionModel({ accessToken, username, groupp, expiredDateAt });
-        return session.save();
+        const session = await this.sessionModel.findOneAndUpdate(
+            { _id: username }, 
+            { 
+                username, 
+                accessToken, 
+                groupp, 
+                expiredDateAt 
+            },{ 
+                new: true,  
+                upsert: true 
+            });
+        return session;
     }
-
+    
     async deleteSession(username: string) {
-        return this.sessionModel.deleteOne({ username });
+        const result = await this.sessionModel.deleteOne({ _id: username });
+        if (result.deletedCount === 0) {
+            throw new Error(`No session found for username: ${username}`);
+        }
+        return { message: 'Sesión eliminada correctamente' };
     }
-
 }

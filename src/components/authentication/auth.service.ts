@@ -21,14 +21,15 @@ export class AuthService {
             throw new HttpException('Credenciales inválidas.', HttpStatus.BAD_REQUEST);
         }
 
-        const payloado = { username: user.username, sub: user.id };
-        const expiresIn = process.env.JWT_EXPIRATION;
-        const token = this.jwtService.sign(payloado, {
+        const payloado = { username: user.username, sub: user.id, groupp: user.groupp,};
+        const expiresIn = process.env.JWT_EXPIRATION || '1h'; ;
+        const token = this.jwtService.sign(payloado,{
             secret: process.env.JWT_SECRET,
             expiresIn,
         });
 
-        const expiredDateAt = new Date(Date.now() + ms(expiresIn));
+        const expirationTime = ms(expiresIn);
+        const expiredDateAt = new Date(Date.now() + expirationTime);
 
         await this.sessionService.createSession(token, user.username, user.groupp, expiredDateAt);
 
@@ -41,6 +42,7 @@ export class AuthService {
     }
 
     async logout(username: string) {
+        
         return await this.sessionService.deleteSession(username);
     }
 }
