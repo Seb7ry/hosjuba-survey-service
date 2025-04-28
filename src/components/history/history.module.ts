@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { HistoryService } from "./history.service";
 import { HistoryController } from "./history.controller";
@@ -8,7 +8,7 @@ import { LogModule } from "../log/log.module";
 
 @Module({
     imports: [
-        LogModule,
+        forwardRef(() => LogModule),
         MongooseModule.forFeature([
             { name: History.name, schema: HistorySchema },
         ]),
@@ -25,7 +25,7 @@ import { LogModule } from "../log/log.module";
         HistoryController
     ],
     providers: [
-        HistoryService
+        HistoryService  
     ],
     exports: [
         HistoryService

@@ -12,6 +12,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
 
 import { AppController } from './app.controller';
+import { OneDriveModule } from './services/one-drive/one-drive.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AppController } from './app.controller';
     HistoryModule,
     SQLServerModule,
     GoogleDriveModule,
+    OneDriveModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

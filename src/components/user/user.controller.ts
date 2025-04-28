@@ -7,6 +7,6 @@ export class UserController {
 
     @Get(':username')
     async getUser(@Param('username') username: string){
-        return this.userService.findByUserName(username);
+        return this.userService.findByUserNameSQL(username);
     }
 }

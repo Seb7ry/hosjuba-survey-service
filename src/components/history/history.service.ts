@@ -75,7 +75,8 @@ export class HistoryService {
 
         this.createHistory(
             `${req.body.username}`, 
-            `El usuario buscó un registro en el historial. ` + text + '.');
+            `El usuario buscó un registro en el historial. ` + text + '.'
+        );
     
         return this.historyModel.find(filter).exec();
     }    
