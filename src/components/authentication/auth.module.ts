@@ -6,12 +6,14 @@ import { UserModule } from "../user/user.module";
 import { JwtModule } from "@nestjs/jwt";
 import * as dotenv from 'dotenv';
 import { SessionModule } from "../session/session.module";
+import { HistoryModule } from "../history/history.module";
 dotenv.config();
 
 @Module({
     imports: [
-        ConfigModule,
         UserModule,
+        ConfigModule,
+        HistoryModule,
         SessionModule,
         JwtModule.registerAsync({
             useFactory: () => ({

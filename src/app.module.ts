@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { LogModule } from './components/logs/log.module';
 import { UserModule } from './components/user/user.module';
 import { AuthModule } from './components/authentication/auth.module';
+import { HistoryModule } from './components/history/history.module';
+import { SessionModule } from './components/session/session.module';
 import { SQLServerModule } from './configurations/sql-server/sql.module';
 import { GoogleDriveModule } from './services/google-drive/google-drive.module';
 
@@ -9,13 +12,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
 
 import { AppController } from './app.controller';
-import { SessionModule } from './components/session/session.module';
 
 @Module({
   imports: [
+    LogModule,
     UserModule,
     AuthModule,
     SessionModule,
+    HistoryModule,
     SQLServerModule,
     GoogleDriveModule,
     ConfigModule.forRoot({

@@ -16,33 +16,25 @@ export class AuthGuard implements CanActivate {
     const token = request.headers.authorization?.split(" ")[1];
 
     if (!token) {
-      console.log("No token provided");
       throw new UnauthorizedException("No token provided");
     }
 
     try {
-      console.log("Token recibido:", token);
-
       const decoded: any = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
       });
 
-      console.log("Datos decodificados:", decoded);
-
       const session = await this.sessionService.findSession(decoded.username);
 
       if (!session) {
-        console.log(`No se encontró sesión para el usuario: ${decoded.username}`);
         throw new UnauthorizedException("Token is expired or not valid.");
       }
 
       if (new Date(session.expiredDateAt) < new Date()) {
-        console.log("La sesión ha expirado.");
         throw new UnauthorizedException("Token is expired or not valid.");
       }
 
       request.user = decoded;
-      console.log(request.user)
 
       return true;
     } catch (error) {

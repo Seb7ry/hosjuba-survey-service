@@ -10,13 +10,12 @@ export class AuthController {
 
     @Post('login')
     async login(@Body() loginDto: LoginDto, @Req() req: Request){
-        console.log(req);
-        return this.authService.login(loginDto.username, loginDto.password);
+        return this.authService.login(req, loginDto.username, loginDto.password);
     }
 
     @Post('logout')
     @UseGuards(AuthGuard)
-    async logout(@Body() body: { username: string }){
-        return this.authService.logout(body.username);
+    async logout(@Body() body: { username: string }, @Req() req: Request){
+        return this.authService.logout(req, body.username);
     }
 }
