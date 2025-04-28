@@ -22,7 +22,7 @@ export class AuthService {
 
     async login(req: Request, username: string, password: string) {
         try{
-            const user = await this.userService.findByUserName(username);
+            const user = await this.userService.findByUserNameSQL(username);
             if (!password || user.password !== password) {
                 await this.logService.createLog('warning', 'auth.service.ts', 'login', 'Contraseña incorrecta.');
                 throw new HttpException('Credenciales inválidas.', HttpStatus.BAD_REQUEST);
