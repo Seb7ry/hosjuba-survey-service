@@ -7,10 +7,12 @@ import { JwtModule } from "@nestjs/jwt";
 import * as dotenv from 'dotenv';
 import { SessionModule } from "../session/session.module";
 import { HistoryModule } from "../history/history.module";
+import { LogModule } from "../log/log.module";
 dotenv.config();
 
 @Module({
     imports: [
+        LogModule,
         UserModule,
         ConfigModule,
         HistoryModule,
