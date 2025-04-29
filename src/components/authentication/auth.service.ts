@@ -6,6 +6,7 @@ import { JwtService } from "@nestjs/jwt";
 import { Request } from "express";
 import * as dotenv from 'dotenv';
 import * as ms from 'ms';
+import * as bcrypt from 'bcryptjs';
 import { LogService } from "../log/log.service";
 
 dotenv.config();
@@ -21,37 +22,42 @@ export class AuthService {
     ) { }
 
     async login(req: Request, username: string, password: string) {
-        try{
-            const user = await this.userService.findByUserNameSQL(username);
-            if (!password || user.password !== password) {
+        try {
+            const user = await this.userService.findUserByUsername(username);
+   
+            if (!user) {
+                await this.logService.createLog('warning', 'auth.service.ts', 'login', 'Usuario no encontrado.');
+                throw new HttpException('Usuario no encontrado.', HttpStatus.BAD_REQUEST);
+            }
+   
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
                 await this.logService.createLog('warning', 'auth.service.ts', 'login', 'Contraseña incorrecta.');
                 throw new HttpException('Credenciales inválidas.', HttpStatus.BAD_REQUEST);
             }
-    
-            const payloado = { username: user.username, sub: user.id, groupp: user.groupp,};
-            const expiresIn = process.env.JWT_EXPIRATION || '1h'; ;
-            const token = this.jwtService.sign(payloado,{
+            const payloado = { username: user.username, sub: user._id, groupp: user.position };
+            const expiresIn = process.env.JWT_EXPIRATION || '1h';
+            const token = this.jwtService.sign(payloado, {
                 secret: process.env.JWT_SECRET,
                 expiresIn,
             });
-    
+   
             const expirationTime = ms(expiresIn);
             const expiredDateAt = new Date(Date.now() + expirationTime);
-    
-            await this.sessionService.createSession(token, user.username, user.groupp, expiredDateAt);
-            await this.historyService.createHistory(
-                `${req.body.username}`,
-                'El usuario ha iniciado sesión.');
-        
+   
+            await this.sessionService.createSession(token, user.username, user.position, expiredDateAt);
+            await this.historyService.createHistory(`${req.body.username}`, 'El usuario ha iniciado sesión.');
+   
             return {
                 username: user.username,
-                groupp: user.groupp,
+                groupp: user.position,
                 access_token: token,
-                expiredDateAt: expiredDateAt.toISOString(), 
+                expiredDateAt: expiredDateAt.toISOString(),
             };
         } catch (e) {
-        }        
-    }
+            throw new HttpException(`Error en el login: ${e.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    } 
 
     async logout(req: Request, username: string) {
         await this.historyService.createHistory(
