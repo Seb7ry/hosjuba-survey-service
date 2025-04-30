@@ -32,9 +32,9 @@ export class SessionService {
         }
     }
 
-    async createSession(accessToken: string, username: string, groupp: string, expiredDateAt: Date) {
+    async createSession(accessToken: string, username: string, position: string, department: string, expiredDateAt: Date) {
         try {
-            if (!accessToken || !username || !groupp || !expiredDateAt) {
+            if (!accessToken || !username || !position || !expiredDateAt) {
                 await this.logService.createLog(
                     'warning',
                     'session.service.ts',
@@ -48,7 +48,8 @@ export class SessionService {
                 { 
                     username, 
                     accessToken, 
-                    groupp, 
+                    position,
+                    department,
                     expiredDateAt 
                 },
                 { 

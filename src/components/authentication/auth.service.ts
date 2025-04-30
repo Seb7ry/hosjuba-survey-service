@@ -4,11 +4,11 @@ import { SessionService } from "../session/session.service";
 import { UserService } from "../user/user.service";
 import { JwtService } from "@nestjs/jwt";
 import { Request } from "express";
-import * as dotenv from 'dotenv';
 import * as ms from 'ms';
 import * as bcrypt from 'bcryptjs';
 import { LogService } from "../log/log.service";
 
+import * as dotenv from 'dotenv';
 dotenv.config();
 
 @Injectable()
@@ -33,9 +33,9 @@ export class AuthService {
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
                 await this.logService.createLog('warning', 'auth.service.ts', 'login', 'Contraseña incorrecta.');
-                throw new HttpException('Credenciales inválidas.', HttpStatus.BAD_REQUEST);
+                throw new HttpException('Contraseña incorrecta.', HttpStatus.BAD_REQUEST);
             }
-            const payloado = { username: user.username, sub: user._id, groupp: user.position };
+            const payloado = { username: user.username, sub: user._id, position: user.position };
             const expiresIn = process.env.JWT_EXPIRATION || '1h';
             const token = this.jwtService.sign(payloado, {
                 secret: process.env.JWT_SECRET,
@@ -45,16 +45,18 @@ export class AuthService {
             const expirationTime = ms(expiresIn);
             const expiredDateAt = new Date(Date.now() + expirationTime);
    
-            await this.sessionService.createSession(token, user.username, user.position, expiredDateAt);
+            await this.sessionService.createSession(token, user.username, user.position, user.department, expiredDateAt);
             await this.historyService.createHistory(`${req.body.username}`, 'El usuario ha iniciado sesión.');
    
             return {
                 username: user.username,
-                groupp: user.position,
+                position: user.position,
+                department: user.department,
                 access_token: token,
                 expiredDateAt: expiredDateAt.toISOString(),
             };
         } catch (e) {
+            if (e instanceof HttpException) throw e;
             throw new HttpException(`Error en el login: ${e.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     } 

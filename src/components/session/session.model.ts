@@ -4,17 +4,20 @@ export type SessionDocument = Session & Document;
 
 @Schema()
 export class Session {
-    @Prop({ type: String, required:true })
+    @Prop({ type: String, required: true })
     _id: string;
 
     @Prop({ required: true })
     username: string;
 
-    @Prop({ required:true })
+    @Prop({ required: true })
     accessToken: string;
 
-    @Prop({ required:true })
-    groupp: string;
+    @Prop({ required: true })
+    position: string;
+
+    @Prop({ required: true })
+    department: string;
 
     @Prop({ required:true })
     expiredDateAt: Date;
