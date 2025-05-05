@@ -1,17 +1,26 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { Request } from "express";
+import { AuthGuard } from "../authentication/auth.guard";
 
 @Controller('user')
 export class UserController {
     constructor(private readonly userService: UserService) {}
 
+    @Get()
+    @UseGuards(AuthGuard)
+    async listUsers() {
+        return this.userService.listUsers();
+    }
+
     @Get(':username')
+    @UseGuards(AuthGuard)
     async getUser(@Param('username') username: string) {
         return this.userService.findUserByUsername(username); 
     }
 
     @Post()
+    @UseGuards(AuthGuard)
     async createUser(
         @Req() req: Request,
         @Body('username') username: string,
@@ -24,6 +33,7 @@ export class UserController {
     }
 
     @Put()
+    @UseGuards(AuthGuard)
     async updateUser(
         @Req() req: Request,
         @Body('username') username: string,
@@ -36,6 +46,7 @@ export class UserController {
     }
 
     @Delete(':username')
+    @UseGuards(AuthGuard)
     async deleteUser(
         @Req() req: Request,
         @Param('username') username: string

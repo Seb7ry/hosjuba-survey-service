@@ -45,11 +45,12 @@ export class AuthService {
             const expirationTime = ms(expiresIn);
             const expiredDateAt = new Date(Date.now() + expirationTime);
    
-            await this.sessionService.createSession(token, user.username, user.position, user.department, expiredDateAt);
+            await this.sessionService.createSession(token, user.username, user.name, user.position, user.department, expiredDateAt);
             await this.historyService.createHistory(`${req.body.username}`, 'El usuario ha iniciado sesión.');
    
             return {
                 username: user.username,
+                name: user.name,
                 position: user.position,
                 department: user.department,
                 access_token: token,

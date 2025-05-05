@@ -8,6 +8,7 @@ import * as dotenv from 'dotenv';
 import { SessionModule } from "../session/session.module";
 import { HistoryModule } from "../history/history.module";
 import { LogModule } from "../log/log.module";
+import { AuthGuard } from "./auth.guard";
 dotenv.config();
 
 @Module({
@@ -27,6 +28,9 @@ dotenv.config();
         }),
     ],
     controllers: [AuthController],
-    providers: [AuthService]
+    providers: [
+        AuthService,
+        AuthGuard
+    ]
 })
 export class AuthModule {}

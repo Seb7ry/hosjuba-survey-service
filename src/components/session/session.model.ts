@@ -11,6 +11,9 @@ export class Session {
     username: string;
 
     @Prop({ required: true })
+    name: string;
+
+    @Prop({ required: true })
     accessToken: string;
 
     @Prop({ required: true })

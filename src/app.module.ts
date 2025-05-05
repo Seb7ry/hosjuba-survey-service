@@ -5,7 +5,6 @@ import { UserModule } from './components/user/user.module';
 import { AuthModule } from './components/authentication/auth.module';
 import { HistoryModule } from './components/history/history.module';
 import { SessionModule } from './components/session/session.module';
-import { SQLServerModule } from './configurations/sql-server/sql.module';
 import { GoogleDriveModule } from './services/google-drive/google-drive.module';
 
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -21,7 +20,6 @@ import { OneDriveModule } from './services/one-drive/one-drive.module';
     AuthModule,
     SessionModule,
     HistoryModule,
-    SQLServerModule,
     GoogleDriveModule,
     OneDriveModule,
     ConfigModule.forRoot({

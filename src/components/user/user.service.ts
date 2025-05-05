@@ -17,6 +17,16 @@ export class UserService {
         private readonly historyService: HistoryService
     ) {}
 
+    async listUsers(): Promise<User[]> {
+        try{
+            const users = await this.userModel.find().exec();
+            return users;
+        } catch(e) {
+            await this.logService.createLog('error', 'user.service.ts', 'listUsers', `Error al listar usuarios: ${e.message}`);
+            throw new InternalServerErrorException('Error al listar usuarios.', e.message);
+        }
+    }
+
     async findUserByUsername(username: string): Promise<User | null> {
         try {
             const user = await this.userModel.findOne({ username }).exec();

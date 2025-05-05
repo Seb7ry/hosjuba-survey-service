@@ -32,9 +32,9 @@ export class SessionService {
         }
     }
 
-    async createSession(accessToken: string, username: string, position: string, department: string, expiredDateAt: Date) {
+    async createSession(accessToken: string, username: string, name: string, position: string, department: string, expiredDateAt: Date) {
         try {
-            if (!accessToken || !username || !position || !expiredDateAt) {
+            if (!accessToken || !username || !name || !department || !position || !expiredDateAt) {
                 await this.logService.createLog(
                     'warning',
                     'session.service.ts',
@@ -46,7 +46,8 @@ export class SessionService {
             const session = await this.sessionModel.findOneAndUpdate(
                 { _id: username }, 
                 { 
-                    username, 
+                    username,
+                    name,
                     accessToken, 
                     position,
                     department,
