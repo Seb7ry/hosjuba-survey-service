@@ -1,29 +1,37 @@
-import { Body, Controller, Get, HttpStatus, Param, Post, Res, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Get, HttpStatus, Param, Post, Res, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { OneDriveService } from "./one-drive.service";
 import { Response } from "express";
 import { Readable } from "stream";
 import { FileInterceptor } from "@nestjs/platform-express";
 
+import * as dotenv from 'dotenv';
+import { AuthGuard } from "src/components/authentication/auth.guard";
+dotenv.config();
+
 @Controller('one-drive')
 export class OneDriveController {
     constructor(private readonly oneDriveService: OneDriveService){ }
 
-    @Get('list')
-    async list(){
-        return this.oneDriveService.listFiles();
+    @Get('listDocument')
+    @UseGuards(AuthGuard)
+    async listDocuments(){
+        return this.oneDriveService.listDocuments();
     }
 
     @Get('listTemplate')
+    @UseGuards(AuthGuard)
     async listTemplates(){
         return this.oneDriveService.listTemplates();
     }
 
     @Get('search/:query')
+    @UseGuards(AuthGuard)
     async searchFiles(@Param('query') query: string) {
         return this.oneDriveService.searchFilesByName(query);
     }
 
     @Get('download/:fileId')
+    @UseGuards(AuthGuard)
     async downloadFile(@Param('fileId') fileId: string, @Res() res: Response) {
         try {
             const fileBuffer = await this.oneDriveService.downloadFile(fileId);
@@ -43,12 +51,12 @@ export class OneDriveController {
     }
 
     @Post('upload')
+    @UseGuards(AuthGuard)
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(
         @UploadedFile() file: Express.Multer.File,
-        @Body('folder') folder: string,
-        @Body('fileName') fileName: string
+        @Body('name') name: string
     ) {
-        return this.oneDriveService.uploadFile(file, folder, fileName);
+        return this.oneDriveService.uploadFileDocument(file, name);
     }
 }

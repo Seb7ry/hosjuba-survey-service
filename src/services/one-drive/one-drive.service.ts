@@ -6,7 +6,7 @@ dotenv.config();
 
 @Injectable()
 export class OneDriveService {
-    constructor(private readonly logService: LogService) {}
+    constructor(private readonly logService: LogService) { }
 
     private async getAccessToken(): Promise<string> {
         try {
@@ -97,15 +97,18 @@ export class OneDriveService {
         return finalName;
     }
 
-    async listFiles(): Promise<any[]> {
+    async listDocuments(): Promise<any[]> {
         try {
             const token = await this.getAccessToken();
-            const folderId = await this.getFolderIdChain([process.env.ONE_DRIVE_FOLDER_NAME!], token);
-            if (!folderId) throw new HttpException('No se encontró la carpeta HosjubaTest.', HttpStatus.NOT_FOUND);
+            const folderId = await this.getFolderIdChain(
+                [process.env.ONE_DRIVE_FOLDER_NAME!, process.env.ONE_DRIVE_FOLDER_DOCUMENT!],
+                token
+            );
+            if (!folderId) throw new HttpException('No se encontró la carpeta DocumentosGenerados.', HttpStatus.NOT_FOUND);
             return await this.listFolderFiles(folderId, token);
         } catch (error) {
-            await this.logService.createLog('error', 'one-drive.service.ts', 'listFiles', error.message);
-            throw new HttpException(`Error al listar archivos: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+            await this.logService.createLog('error', 'one-drive.service.ts', 'listTemplates', error.message);
+            throw new HttpException(`Error al listar documentos generados: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -164,17 +167,24 @@ export class OneDriveService {
         }
     }
 
-    async uploadFile(file: Express.Multer.File, targetFolderName: string, nameFile: string): Promise<any> {
+    async uploadFileDocument(
+        file: Express.Multer.File,
+        nameFile: string
+    ): Promise<any> {
         try {
             const token = await this.getAccessToken();
-            const folderPath = [process.env.ONE_DRIVE_FOLDER_NAME!];
-            if (targetFolderName !== process.env.ONE_DRIVE_FOLDER_NAME) {
-                folderPath.push(targetFolderName);
-            }
+
+            const folderPath = [
+                process.env.ONE_DRIVE_FOLDER_NAME!,       
+                process.env.ONE_DRIVE_FOLDER_DOCUMENT!,   
+            ];
 
             const targetFolderId = await this.getFolderIdChain(folderPath, token);
             if (!targetFolderId) {
-                throw new HttpException(`No se encontró la carpeta destino: ${targetFolderName}`, HttpStatus.NOT_FOUND);
+                throw new HttpException(
+                    `No se encontró la carpeta destino: ${folderPath.join('/')}`,
+                    HttpStatus.NOT_FOUND
+                );
             }
 
             const existingData = await this.safeFetch(
@@ -188,7 +198,7 @@ export class OneDriveService {
             const uploadRes = await fetch(uploadUrl, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                     'Content-Type': file.mimetype,
                 },
                 body: file.buffer,
@@ -200,7 +210,7 @@ export class OneDriveService {
             }
 
             return await uploadRes.json();
-        } catch (error) {
+        } catch (error: any) {
             await this.logService.createLog('error', 'one-drive.service.ts', 'uploadFile', error.message);
             throw new HttpException(`Error al subir archivo: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }

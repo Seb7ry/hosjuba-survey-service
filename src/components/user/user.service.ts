@@ -91,7 +91,8 @@ export class UserService {
     async deleteUser(req: Request, username: string) {
         try {
             if (!username) throw new HttpException('Debe proporcionar un nombre de usuario.', HttpStatus.BAD_REQUEST);
-    
+            if(username.toLowerCase() === 'admin') throw new HttpException('No se puede eliminar al usuario administrador.', HttpStatus.FORBIDDEN);
+
             const user = await this.userModel.findOne({ username }).exec();
             if (!user) throw new HttpException('El usuario no existe.', HttpStatus.NOT_FOUND);
     
