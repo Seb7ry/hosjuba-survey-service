@@ -12,12 +12,14 @@ import { AppService } from './app.service';
 
 import { AppController } from './app.controller';
 import { OneDriveModule } from './services/one-drive/one-drive.module';
+import { CaseModule } from './components/case/case.module';
 
 @Module({
   imports: [
     LogModule,
     UserModule,
     AuthModule,
+    CaseModule,
     SessionModule,
     HistoryModule,
     GoogleDriveModule,
