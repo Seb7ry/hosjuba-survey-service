@@ -14,6 +14,7 @@ import { AppController } from './app.controller';
 import { OneDriveModule } from './services/one-drive/one-drive.module';
 import { CaseModule } from './components/case/case.module';
 import { DepartmentModule } from './components/department/department.module';
+import { PositionModule } from './components/position/position.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { DepartmentModule } from './components/department/department.module';
     CaseModule,
     SessionModule,
     HistoryModule,
+    PositionModule,
     DepartmentModule,
     GoogleDriveModule,
     OneDriveModule,

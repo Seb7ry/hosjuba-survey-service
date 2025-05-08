@@ -45,9 +45,14 @@ export class DepartmentService {
 
     async updateDepartment(req: Request, currentName: string, newName: string) {
         try {
-            const department = await this.departmentModel.findOne({ currentName }).exec();
+            const department = await this.departmentModel.findOne({ name: currentName }).exec();
             if (!department) throw new HttpException('La dependencia no existe.', HttpStatus.NOT_FOUND);
-
+    
+            if (newName !== currentName) {
+                const existingDept = await this.departmentModel.findOne({ name: newName }).exec();
+                if (existingDept) throw new HttpException('Ya existe una dependencia con ese nombre.', HttpStatus.CONFLICT);
+            }
+    
             department.name = newName;
             //await this.historyService.createHistory(req.body.username, `Se ha actualizado el usuario ${username}.`);
             return await department.save();
