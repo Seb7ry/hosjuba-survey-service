@@ -82,38 +82,28 @@ export class UserService {
 
     async updateUser(
         req: Request,
-        username: string,
-        password: string,
-        name: string,
-        department: string,
-        position: string,
-        signature?: string
-    ) {
+        data: Partial<User> & { username: string }
+      ) {
         try {
-            if (!username || !password || !name || !department || !position) {
-                throw new HttpException('Se requieren todos los datos para actualizar el usuario.', HttpStatus.BAD_REQUEST);
-            }
-
-            const user = await this.userModel.findOne({ username }).exec();
-            if (!user) throw new HttpException('El usuario no existe.', HttpStatus.NOT_FOUND);
-
-            user.password = password;
-            user.name = name;
-            user.department = department;
-            user.position = position;
-
-            if (signature !== undefined) {
-                user.signature = signature;
-            }
-
-            //await this.historyService.createHistory(req.body.username, `Se ha actualizado el usuario ${username}.`);
-            return await user.save();
+          const { username, ...updates } = data;
+      
+          const user = await this.userModel.findOne({ username }).exec();
+          if (!user) throw new HttpException('El usuario no existe.', HttpStatus.NOT_FOUND);
+      
+          if (updates.name !== undefined) user.name = updates.name;
+          if (updates.department !== undefined) user.department = updates.department;
+          if (updates.position !== undefined) user.position = updates.position;
+          if (updates.password !== undefined) user.password = updates.password;
+          if (updates.signature !== undefined) user.signature = updates.signature;
+      
+          return await user.save();
         } catch (e) {
-            if (e instanceof HttpException) throw e;
-            await this.logService.createLog('error', 'user.service.ts', 'updateUser', `Error al actualizar usuario: ${e.message}`);
-            throw new InternalServerErrorException('Error al actualizar el usuario.', e.message);
+          if (e instanceof HttpException) throw e;
+          await this.logService.createLog('error', 'user.service.ts', 'updateUser', `Error al actualizar usuario: ${e.message}`);
+          throw new InternalServerErrorException('Error al actualizar el usuario.', e.message);
         }
-    }
+      }
+      
 
     async deleteUser(req: Request, username: string) {
         try {

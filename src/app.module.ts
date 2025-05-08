@@ -13,6 +13,7 @@ import { AppService } from './app.service';
 import { AppController } from './app.controller';
 import { OneDriveModule } from './services/one-drive/one-drive.module';
 import { CaseModule } from './components/case/case.module';
+import { DepartmentModule } from './components/department/department.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CaseModule } from './components/case/case.module';
     CaseModule,
     SessionModule,
     HistoryModule,
+    DepartmentModule,
     GoogleDriveModule,
     OneDriveModule,
     ConfigModule.forRoot({

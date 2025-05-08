@@ -5,7 +5,7 @@ import { AuthGuard } from "../authentication/auth.guard";
 
 @Controller('user')
 export class UserController {
-    constructor(private readonly userService: UserService) {}
+    constructor(private readonly userService: UserService) { }
 
     @Get()
     @UseGuards(AuthGuard)
@@ -16,9 +16,10 @@ export class UserController {
     @Get(':username')
     @UseGuards(AuthGuard)
     async getUser(@Param('username') username: string) {
-        return this.userService.findUserByUsername(username); 
+        return this.userService.findUserByUsername(username);
     }
 
+    // En el controlador (user.controller.ts)
     @Post()
     @UseGuards(AuthGuard)
     async createUser(
@@ -27,22 +28,16 @@ export class UserController {
         @Body('password') password: string,
         @Body('name') name: string,
         @Body('department') department: string,
-        @Body('position') position: string
+        @Body('position') position: string,
+        @Body('signature') signature?: string  // Añade este parámetro
     ) {
-        return this.userService.createUser(req, username, password, name, department, position);
+        return this.userService.createUser(req, username, password, name, department, position, signature);
     }
 
     @Put()
     @UseGuards(AuthGuard)
-    async updateUser(
-        @Req() req: Request,
-        @Body('username') username: string,
-        @Body('password') password: string,
-        @Body('name') name: string,
-        @Body('department') department: string,
-        @Body('position') position: string
-    ) {
-        return this.userService.updateUser(req, username, password, name, department, position);
+    async updateUser(@Req() req: Request, @Body() body: any) {
+      return this.userService.updateUser(req, body);
     }
 
     @Delete(':username')
