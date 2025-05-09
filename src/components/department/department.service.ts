@@ -2,18 +2,18 @@ import { HttpException, HttpStatus, Injectable, InternalServerErrorException } f
 import { InjectModel } from '@nestjs/mongoose';
 import * as dotenv from 'dotenv';
 import { Department, DepartmentDocument } from './department.model';
-import { LogService } from '../log/log.service';
 import { HistoryService } from '../history/history.service';
 import { Model } from 'mongoose';
 import { Request } from 'express';
+import { SessionService } from '../session/session.service';
 dotenv.config();
 
 @Injectable()
 export class DepartmentService {
     constructor(
         @InjectModel(Department.name) private readonly departmentModel: Model<DepartmentDocument>,
-        private readonly logService: LogService,
-        private readonly historyService: HistoryService
+        private readonly historyService: HistoryService,
+        private readonly sessionService: SessionService
     ) { }
 
     async listDepartment(): Promise<Department[]> {
@@ -21,7 +21,6 @@ export class DepartmentService {
             const departments = await this.departmentModel.find().exec();
             return departments;
         } catch (e) {
-            await this.logService.createLog('error', 'department.service.ts', 'listDepartment', `Error al listar usuarios: ${e.message}`);
             throw new InternalServerErrorException('Error al listar las dependencias.', e.message);
         }
     }
@@ -35,9 +34,9 @@ export class DepartmentService {
             const departmentData: Partial<Department> = { name };
 
             const department = new this.departmentModel(departmentData);
+
             return await department.save();
         } catch (e) {
-            await this.logService.createLog('error', 'department.service.ts', 'createDepartment', `Error al crear dependencia: ${e.message}`);
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al crear una dependencia.', e.message);
         }
@@ -47,18 +46,17 @@ export class DepartmentService {
         try {
             const department = await this.departmentModel.findOne({ name: currentName }).exec();
             if (!department) throw new HttpException('La dependencia no existe.', HttpStatus.NOT_FOUND);
-    
+
             if (newName !== currentName) {
                 const existingDept = await this.departmentModel.findOne({ name: newName }).exec();
                 if (existingDept) throw new HttpException('Ya existe una dependencia con ese nombre.', HttpStatus.CONFLICT);
             }
-    
+
             department.name = newName;
             //await this.historyService.createHistory(req.body.username, `Se ha actualizado el usuario ${username}.`);
             return await department.save();
         } catch (e) {
             if (e instanceof HttpException) throw e;
-            await this.logService.createLog('error', 'department.service.ts', 'updateDepartment', `Error al actualizar dependencia: ${e.message}`);
             throw new InternalServerErrorException('Error al actualizar la dependencia.', e.message);
         }
     }
@@ -72,11 +70,9 @@ export class DepartmentService {
             await this.departmentModel.deleteOne({ name }).exec();
 
             // await this.historyService.createHistory(req.body.username, `Se eliminó la dependencia ${name}.`);
-
             return { message: 'Dependencia eliminada correctamente.' };
         } catch (e) {
             if (e instanceof HttpException) throw e;
-            await this.logService.createLog('error', 'department.service.ts', 'deleteDepartment', `Error al eliminar dependencia: ${e.message}`);
             throw new InternalServerErrorException('Error al eliminar la dependencia.', e.message);
         }
     }

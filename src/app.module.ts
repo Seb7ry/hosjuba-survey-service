@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { LogModule } from './components/log/log.module';
 import { UserModule } from './components/user/user.module';
 import { AuthModule } from './components/authentication/auth.module';
 import { HistoryModule } from './components/history/history.module';
@@ -18,7 +17,6 @@ import { PositionModule } from './components/position/position.module';
 
 @Module({
   imports: [
-    LogModule,
     UserModule,
     AuthModule,
     CaseModule,

@@ -17,10 +17,10 @@ class Firma {
 
 @Schema({ _id: false })
 class Calificacion {
-    @Prop({ required: true, min: 1, max: 4 })
+    @Prop({ required: false, min: 1, max: 4 })
     efectividad: number;
 
-    @Prop({ required: true, min: 1, max: 4 })
+    @Prop({ required: false, min: 1, max: 4 })
     satisfaccion: number;
 }
 
@@ -44,13 +44,14 @@ export class Case {
     @Prop({ type: Firma, required: false })
     firmaUsuario: Firma;
 
-    @Prop({ type: Calificacion, required: true })
+    @Prop({ type: Calificacion, required: false })
     calificacion: Calificacion;
 
     @Prop({ default: 'pendiente', enum: ['Abierto', 'En proceso', 'Cerrado', 'En escalamiento'] })
     estado: string;
 
     @Prop({ type: MongooseSchema.Types.Mixed })
+    addData: any;
 
     @Prop({ default: Date.now })
     creadoEn: Date;
@@ -61,3 +62,4 @@ export const CaseSchema = SchemaFactory.createForClass(Case);
 CaseSchema.index({ numeroCaso: 1 });
 CaseSchema.index({ dependencia: 1 });
 CaseSchema.index({ estado: 1 });
+CaseSchema.index({ creadoEn: 1 });

@@ -1,5 +1,5 @@
 export class UpdateCaseDto {
-    readonly firmaTecnico?: {
+    readonly firmaTecnico: {
         nombre: string;
         cargo: string;
         firma: string;
@@ -14,4 +14,5 @@ export class UpdateCaseDto {
         satisfaccion: number;
     };
     readonly estado?: string;
+    readonly addData?: Record<string, any>;
 }

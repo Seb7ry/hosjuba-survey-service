@@ -4,11 +4,9 @@ import { HistoryService } from "./history.service";
 import { HistoryController } from "./history.controller";
 import { MongooseModule } from "@nestjs/mongoose";
 import { History, HistorySchema } from "./history.model";
-import { LogModule } from "../log/log.module";
 
 @Module({
     imports: [
-        forwardRef(() => LogModule),
         MongooseModule.forFeature([
             { name: History.name, schema: HistorySchema },
         ]),

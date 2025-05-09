@@ -37,20 +37,14 @@ export class CaseService {
     }
 
     async updateCase(id: string, updateCasoDto: UpdateCaseDto): Promise<Case> {
-        const caso = await this.casoModel.findById(id).exec();
+        const caso = await this.casoModel.findByIdAndUpdate(
+            id,
+            { $set: updateCasoDto },
+            { new: true }
+        ).exec();
+
         if (!caso) throw new NotFoundException('Caso no encontrado');
-
-        if (updateCasoDto.firmaTecnico) {
-            caso.firmaTecnico = updateCasoDto.firmaTecnico;
-        }
-
-        if (updateCasoDto.firmaUsuario) {
-            caso.firmaUsuario = updateCasoDto.firmaUsuario;
-        }
-
-        Object.assign(caso, updateCasoDto);
-
-        return caso.save();
+        return caso;
     }
 
     async deleteCase(id: string): Promise<void> {

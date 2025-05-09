@@ -1,12 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as dotenv from 'dotenv';
-import { LogService } from 'src/components/log/log.service';
 
 dotenv.config();
 
 @Injectable()
 export class OneDriveService {
-    constructor(private readonly logService: LogService) { }
+    constructor() { }
 
     private async getAccessToken(): Promise<string> {
         try {
@@ -22,13 +21,11 @@ export class OneDriveService {
 
             const data = await res.json();
             if (!data.access_token) {
-                await this.logService.createLog('error', 'one-drive.service.ts', 'getAccessToken', `Token inválido: ${JSON.stringify(data)}`);
                 throw new HttpException('No se pudo obtener el token de acceso.', HttpStatus.UNAUTHORIZED);
             }
 
             return data.access_token;
         } catch (error) {
-            await this.logService.createLog('error', 'one-drive.service.ts', 'getAccessToken', error.message);
             throw new HttpException(`Error obteniendo token: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -107,7 +104,6 @@ export class OneDriveService {
             if (!folderId) throw new HttpException('No se encontró la carpeta DocumentosGenerados.', HttpStatus.NOT_FOUND);
             return await this.listFolderFiles(folderId, token);
         } catch (error) {
-            await this.logService.createLog('error', 'one-drive.service.ts', 'listTemplates', error.message);
             throw new HttpException(`Error al listar documentos generados: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -122,7 +118,6 @@ export class OneDriveService {
             if (!folderId) throw new HttpException('No se encontró la carpeta Plantillas.', HttpStatus.NOT_FOUND);
             return await this.listFolderFiles(folderId, token);
         } catch (error) {
-            await this.logService.createLog('error', 'one-drive.service.ts', 'listTemplates', error.message);
             throw new HttpException(`Error al listar plantillas: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -143,7 +138,6 @@ export class OneDriveService {
                 file.name.toLowerCase().includes(query.toLowerCase())
             );
         } catch (error) {
-            await this.logService.createLog('error', 'one-drive.service.ts', 'searchFilesByName', error.message);
             throw new HttpException(`Error al buscar archivos: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -156,13 +150,11 @@ export class OneDriveService {
             });
 
             if (!res.ok) {
-                await this.logService.createLog('warning', 'one-drive.service.ts', 'downloadFile', `Error al descargar archivo: ${fileId}`);
                 throw new HttpException('Error al descargar el archivo.', HttpStatus.NOT_FOUND);
             }
 
             return await res.arrayBuffer();
         } catch (error) {
-            await this.logService.createLog('error', 'one-drive.service.ts', 'downloadFile', error.message);
             throw new HttpException(`Error al descargar archivo: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -175,8 +167,8 @@ export class OneDriveService {
             const token = await this.getAccessToken();
 
             const folderPath = [
-                process.env.ONE_DRIVE_FOLDER_NAME!,       
-                process.env.ONE_DRIVE_FOLDER_DOCUMENT!,   
+                process.env.ONE_DRIVE_FOLDER_NAME!,
+                process.env.ONE_DRIVE_FOLDER_DOCUMENT!,
             ];
 
             const targetFolderId = await this.getFolderIdChain(folderPath, token);
@@ -211,7 +203,6 @@ export class OneDriveService {
 
             return await uploadRes.json();
         } catch (error: any) {
-            await this.logService.createLog('error', 'one-drive.service.ts', 'uploadFile', error.message);
             throw new HttpException(`Error al subir archivo: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { LogModule } from "../log/log.module";
 import { HistoryModule } from "../history/history.module";
 import { SessionModule } from "../session/session.module";
 import { MongooseModule } from "@nestjs/mongoose";
@@ -10,7 +9,6 @@ import { DepartmentService } from "./department.service";
 
 @Module({
     imports: [
-        LogModule,
         HistoryModule,
         SessionModule,
         MongooseModule.forFeature([

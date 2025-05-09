@@ -1,20 +1,20 @@
 import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from "@nestjs/common";
 import { HistoryService } from "../history/history.service";
 import { User, UserDocument } from "./user.model";
-import { LogService } from "../log/log.service";
 import { InjectModel } from "@nestjs/mongoose";
 import { Request } from "express";
 import { Model } from 'mongoose';
 
 import * as dotenv from 'dotenv';
+import { SessionService } from "../session/session.service";
 dotenv.config();
 
 @Injectable()
 export class UserService {
     constructor(
         @InjectModel(User.name) private userModel: Model<UserDocument>,
-        private readonly logService: LogService,
-        private readonly historyService: HistoryService
+        private readonly historyService: HistoryService,
+        private readonly sessionService: SessionService
     ) { }
 
     async listUsers(): Promise<User[]> {
@@ -22,7 +22,6 @@ export class UserService {
             const users = await this.userModel.find().exec();
             return users;
         } catch (e) {
-            await this.logService.createLog('error', 'user.service.ts', 'listUsers', `Error al listar usuarios: ${e.message}`);
             throw new InternalServerErrorException('Error al listar usuarios.', e.message);
         }
     }
@@ -69,16 +68,13 @@ export class UserService {
             }
 
             const user = new this.userModel(userData);
-
             //await this.historyService.createHistory(req.body.username, `Se ha creado el usuario ${username}.`);
             return await user.save();
         } catch (e) {
-            await this.logService.createLog('error', 'user.service.ts', 'createUser', `Error al crear usuario: ${e.message}`);
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al crear un usuario.', e.message);
         }
     }
-
 
     async updateUser(
         req: Request,
@@ -99,7 +95,6 @@ export class UserService {
           return await user.save();
         } catch (e) {
           if (e instanceof HttpException) throw e;
-          await this.logService.createLog('error', 'user.service.ts', 'updateUser', `Error al actualizar usuario: ${e.message}`);
           throw new InternalServerErrorException('Error al actualizar el usuario.', e.message);
         }
       }
@@ -123,7 +118,6 @@ export class UserService {
             return { message: 'Usuario eliminado correctamente.' };
         } catch (e) {
             if (e instanceof HttpException) throw e;
-            await this.logService.createLog('error', 'user.service.ts', 'deleteUser', `Error al eliminar usuario: ${e.message}`);
             throw new InternalServerErrorException('Error al eliminar el usuario.', e.message);
         }
     }

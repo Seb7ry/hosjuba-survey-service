@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { UserController } from "./user.controller";
 import { UserService } from "./user.service";
-import { LogModule } from "../log/log.module";
 import { HistoryModule } from "../history/history.module";
 import { MongooseModule } from "@nestjs/mongoose";
 import { JwtModule } from "@nestjs/jwt";
@@ -10,7 +9,6 @@ import { SessionModule } from "../session/session.module";
 
 @Module({
     imports: [
-        LogModule,
         HistoryModule,
         SessionModule,
         MongooseModule.forFeature([
