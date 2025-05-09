@@ -3,11 +3,13 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from 'mongoose';
 import { Session, SessionDocument } from './session.model';
 import * as ms from 'ms';
+import { JwtService } from "@nestjs/jwt";
 
 @Injectable()
 export class SessionService {
     constructor(
-        @InjectModel(Session.name) private sessionModel: Model<SessionDocument>) { }
+        @InjectModel(Session.name) private sessionModel: Model<SessionDocument>,
+        private readonly jwtService: JwtService) { }
 
     async findSession(username: string) {
         try {
@@ -63,25 +65,41 @@ export class SessionService {
     async refreshSession(username: string) {
         try {
             if (!username) throw new HttpException('Username es requerido.', HttpStatus.BAD_REQUEST);
-            
-            const exists = await this.sessionModel.findOne({ _id: username }).lean();
-            const expirationTime = ms(process.env.JWT_EXPIRATION);
+
+            const existingSession = await this.sessionModel.findOne({ _id: username }).exec();
+            if (!existingSession) throw new HttpException('Sesión no encontrada', HttpStatus.NOT_FOUND);
+
+            const expirationTime = ms(process.env.JWT_EXPIRATION || '60s');
             const expiredDateAt = new Date(Date.now() + expirationTime);
-            const session = await this.sessionModel.findOneAndUpdate(
+            const updatedSession = await this.sessionModel.findOneAndUpdate(
                 { _id: username },
+                { expiredDateAt },
+                { new: true }
+            ).exec();
+
+            if (!updatedSession) throw new HttpException('Error al actualizar la sesión', HttpStatus.INTERNAL_SERVER_ERROR);
+
+            const newToken = this.jwtService.sign(
                 {
-                    expiredDateAt: expiredDateAt,
+                    username: updatedSession.username,
+                    name: updatedSession.name,
+                    position: updatedSession.position,
+                    department: updatedSession.department,
                 },
                 {
-                    new: true,
-                    upsert: false
-                });
+                    expiresIn: process.env.JWT_EXPIRATION,
+                }
+            );
 
-            if (!session) throw new HttpException('Sesión no encontrada', HttpStatus.NOT_FOUND);
-            
-            return session;
+            return {
+                accessToken: newToken,
+                session: {
+                    username: updatedSession.username,
+                    expiredDateAt: updatedSession.expiredDateAt,
+                },
+            };
         } catch (error) {
-            throw new HttpException(`Error refrescando sesión: ${error.message}`, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new HttpException(`Error refrescando sesión: ${error.message}`, error.status || HttpStatus.INTERNAL_SERVER_ERROR,);
         }
     }
 }

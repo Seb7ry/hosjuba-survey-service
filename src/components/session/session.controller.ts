@@ -4,11 +4,11 @@ import { AuthGuard } from "../authentication/auth.guard";
 
 @Controller('session')
 export class SessionController {
-    constructor(private readonly sessionService: SessionService) { }
+    constructor(private readonly sessionService: SessionService) {}
 
     @Post()
     @UseGuards(AuthGuard)
-    async refreshToken( @Body('username') username: string){
+    async refreshToken(@Body('username') username: string) {
         return this.sessionService.refreshSession(username);
     }
 }
