@@ -1,54 +1,107 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Case, CaseDocument } from './case.model';
-import { CreateCaseDto } from './create-case.dto';
-import { UpdateCaseDto } from './update-case.dto';
+
+interface SearchFilters {
+    caseNumber?: string;
+    serviceType?: string;
+    dependency?: string;
+    reportedById?: string;
+    technicianId?: string;
+    status?: string;
+    typeCase?: string;
+    startDate?: Date;
+    endDate?: Date;
+    minEffectiveness?: number;
+    minSatisfaction?: number;
+}
 
 @Injectable()
 export class CaseService {
     constructor(
-        @InjectModel(Case.name) private readonly casoModel: Model<CaseDocument>,
+        @InjectModel(Case.name) private readonly caseModel: Model<CaseDocument>,
     ) { }
 
-    async createCase(createCasoDto: CreateCaseDto): Promise<Case> {
-        const nuevoCaso = new this.casoModel(createCasoDto);
-        return nuevoCaso.save();
+    async create(caseData: Partial<Case>): Promise<CaseDocument> {
+        try {
+            const exists = await this.caseModel.findOne({ caseNumber: caseData.caseNumber });
+            if (exists) {
+                throw new Error('Case number already exists');
+            }
+
+            const newCase = new this.caseModel(caseData);
+            return await newCase.save();
+        } catch (error) {
+            throw error;
+        }
     }
 
-    async getAllCases(): Promise<Case[]> {
-        return this.casoModel.find().sort({ creadoEn: -1 }).exec();
+    async findByCaseNumber(caseNumber: string): Promise<CaseDocument> {
+        const caseFound = await this.caseModel.findOne({ caseNumber }).exec();
+        if (!caseFound) {
+            throw new NotFoundException(`Case withd number ${caseNumber} not found`);
+        }
+        return caseFound;
     }
+    async search(filters: SearchFilters): Promise<CaseDocument[]> {
+        const query: any = {};
 
-    async getCase(numeroCaso: string): Promise<Case> {
-        const caso = await this.casoModel.findOne({ numeroCaso }).exec();
-        if (!caso) throw new NotFoundException('Caso no encontrado');
-        return caso;
-    }
+        if (filters.caseNumber) query.caseNumber = filters.caseNumber;
+        if (filters.serviceType) query.serviceType = filters.serviceType;
+        if (filters.dependency) query.dependency = filters.dependency;
+        if (filters.status) query.status = filters.status;
 
-    async getCaseByDepartment(dependencia: string, numeroCaso?: string): Promise<Case[]> {
-        const filter: any = { dependencia };
+        if (filters.reportedById) query['reportedBy._id'] = filters.reportedById;
+        if (filters.technicianId) query['assignedTechnician._id'] = filters.technicianId;
 
-        if (numeroCaso) {
-            filter.numeroCaso = { $regex: numeroCaso, $options: 'i' };
+        if (filters.typeCase) query.typeCase = filters.typeCase;
+
+        if (filters.startDate || filters.endDate) {
+            const start = filters.startDate ? new Date(filters.startDate) : null;
+            let end = filters.endDate ? new Date(filters.endDate) : null;
+
+            if (start) {
+                start.setUTCHours(0, 0, 0, 0); 
+            }
+
+            if (end) {
+                end.setUTCHours(23, 59, 59, 999);  
+            } else if (start) {
+                end = new Date(start);
+                end.setUTCHours(23, 59, 59, 999);
+            }
+
+            if (start && end && end <= start) {
+                throw new BadRequestException('End date must be after start date.');
+            }
+
+            query.reportedAt = {};
+            if (start) query.reportedAt.$gte = start;  
+            if (end) query.reportedAt.$lte = end;     
         }
 
-        return this.casoModel.find(filter).sort({ creadoEn: -1 }).exec();
+        if (filters.minEffectiveness != null) query['effectivenessRating.value'] = { $gte: filters.minEffectiveness };
+        if (filters.minSatisfaction != null) query['satisfactionRating.value'] = { $gte: filters.minSatisfaction };
+
+        return this.caseModel.find(query).sort({ reportedAt: -1 }).exec();
     }
 
-    async updateCase(id: string, updateCasoDto: UpdateCaseDto): Promise<Case> {
-        const caso = await this.casoModel.findByIdAndUpdate(
-            id,
-            { $set: updateCasoDto },
-            { new: true }
-        ).exec();
+    async update(id: string, updateData: Partial<Case>): Promise<CaseDocument> {
+        const updatedCase = await this.caseModel
+            .findByIdAndUpdate(id, updateData, { new: true })
+            .exec();
 
-        if (!caso) throw new NotFoundException('Caso no encontrado');
-        return caso;
+        if (!updatedCase) {
+            throw new NotFoundException(`Case with ID ${id} not found`);
+        }
+        return updatedCase;
     }
 
-    async deleteCase(id: string): Promise<void> {
-        const res = await this.casoModel.findByIdAndDelete(id);
-        if (!res) throw new NotFoundException('Caso no encontrado');
+    async delete(id: string): Promise<void> {
+        const result = await this.caseModel.findByIdAndDelete(id).exec();
+        if (!result) {
+            throw new NotFoundException(`Case with ID ${id} not found`);
+        }
     }
 }

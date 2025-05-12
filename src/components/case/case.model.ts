@@ -4,65 +4,98 @@ import { Document, Schema as MongooseSchema } from "mongoose";
 export type CaseDocument = Case & Document;
 
 @Schema({ _id: false })
-class Firma {
-    @Prop({ required: true })
-    nombre: string;
-
-    @Prop({ required: true })
-    cargo: string;
-
-    @Prop({ required: true })
-    firma: string;
+export class Rating {
+  @Prop({ min: 1, max: 4 })
+  value: number;
 }
 
 @Schema({ _id: false })
-class Calificacion {
-    @Prop({ required: false, min: 1, max: 4 })
-    efectividad: number;
+export class UserRef {
+  @Prop({ required: true })
+  _id: string;
 
-    @Prop({ required: false, min: 1, max: 4 })
-    satisfaccion: number;
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true })
+  position: string;
+
+  @Prop()
+  department?: string;
+
+  @Prop()
+  signature?: string;
 }
 
-@Schema()
+@Schema({ timestamps: true })
 export class Case {
-    @Prop({ required: true, unique: true })
-    numeroCaso: string;
 
-    @Prop({ required: true })
-    typeCaso: string;
+  @Prop({ required: true })
+  caseNumber: string;
 
-    @Prop({ required: true })
-    dependencia: string;
+  @Prop({
+    required: true,
+    enum: ["Mantenimiento", "Preventivo"]
+  })
+  typeCase: string;
 
-    @Prop({ required: true })
-    funcionario: string;
+  @Prop({
+    required: true,
+    enum: ["Solicitud", "Incidente", "Concepto Técnico"]
+  })
+  serviceType: string;
 
-    @Prop({ required: true })
-    cargoFuncionario: string;
+  @Prop({ required: true })
+  dependency: string;
 
-    @Prop({ type: Firma, required: true })
-    firmaTecnico: Firma;
+  @Prop({
+    default: "Abierto",
+    enum: ["Abierto", "En proceso", "Cerrado", "En escalamiento"]
+  })
+  status: string;
 
-    @Prop({ type: Firma, required: false })
-    firmaUsuario: Firma;
+  @Prop({ default: Date.now })
+  reportedAt: Date;
 
-    @Prop({ type: Calificacion, required: false })
-    calificacion: Calificacion;
+  @Prop({ required: true })
+  observations: string;
 
-    @Prop({ default: 'pendiente', enum: ['Abierto', 'En proceso', 'Cerrado', 'En escalamiento'] })
-    estado: string;
+  @Prop({ type: UserRef })
+  reportedBy: UserRef;
 
-    @Prop({ type: MongooseSchema.Types.Mixed })
-    addData: any;
+  @Prop({ type: UserRef })
+  assignedTechnician: UserRef;
 
-    @Prop({ default: Date.now })
-    creadoEn: Date;
+  @Prop({ type: Rating })
+  effectivenessRating?: Rating;
+
+  @Prop({ type: Rating })
+  satisfactionRating?: Rating;
+
+  @Prop({ type: MongooseSchema.Types.Mixed })
+  serviceData?: any;
 }
 
 export const CaseSchema = SchemaFactory.createForClass(Case);
 
-CaseSchema.index({ numeroCaso: 1 });
-CaseSchema.index({ dependencia: 1 });
-CaseSchema.index({ estado: 1 });
-CaseSchema.index({ creadoEn: 1 });
+CaseSchema.index({ caseNumber: 1 }, { unique: true });
+CaseSchema.index({ typeCase: 1 });
+CaseSchema.index({ serviceType: 1 });
+CaseSchema.index({ dependency: 1 });
+CaseSchema.index({ status: 1 });
+CaseSchema.index({ reportedAt: -1 });
+CaseSchema.index({ "reportedBy._id": 1 });
+CaseSchema.index({ "assignedTechnician._id": 1 });
+CaseSchema.index({
+  reportedAt: 1,
+  status: 1
+});
+CaseSchema.index({
+  dependency: 1,
+  serviceType: 1,
+  status: 1
+});
+CaseSchema.index({
+  "effectivenessRating.value": 1,
+  "satisfactionRating.value": 1
+});

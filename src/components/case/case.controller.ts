@@ -1,43 +1,62 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Body, Query } from '@nestjs/common';
 import { CaseService } from './case.service';
-import { CreateCaseDto } from './create-case.dto';
-import { UpdateCaseDto } from './update-case.dto';
 import { Case } from './case.model';
+import { BadRequestException } from '@nestjs/common';
 
 @Controller('case')
 export class CaseController {
-    constructor(private readonly caseService: CaseService) { }
+    constructor(private readonly caseService: CaseService) {}
 
     @Post()
-    async create(@Body() createCaseDto: CreateCaseDto): Promise<Case> {
-        return this.caseService.createCase(createCaseDto);
+    async create(@Body() caseData: Partial<Case>) {
+        if (!caseData.caseNumber || !caseData.serviceType || !caseData.dependency) {
+            throw new BadRequestException('Case number, service type and dependency are required');
+        }
+        return this.caseService.create(caseData);
+    }
+
+    @Get(':caseNumber')
+    async getCase(@Param('caseNumber') caseNumber: string) {
+        return this.caseService.findByCaseNumber(caseNumber);
     }
 
     @Get()
-    async findAll(): Promise<Case[]> {
-        return this.caseService.getAllCases();
-    }
-
-    @Get(':numeroCaso')
-    async findOne(@Param('numeroCaso') numeroCaso: string): Promise<Case> {
-        return this.caseService.getCase(numeroCaso);
-    }
-
-    @Get('department')
-    async getCasesByDependencia(
-        @Query('department') dependencia: string,
-        @Query('numeroCaso') numeroCaso?: string,
-    ): Promise<Case[]> {
-        return this.caseService.getCaseByDepartment(dependencia, numeroCaso);
+    async search(
+        @Query('caseNumber') caseNumber?: string,
+        @Query('serviceType') serviceType?: string,
+        @Query('dependency') dependency?: string,
+        @Query('reportedById') reportedById?: string,
+        @Query('technicianId') technicianId?: string,
+        @Query('status') status?: string,
+        @Query('typeCase') typeCase?: string,  
+        @Query('startDate') startDate?: string, 
+        @Query('endDate') endDate?: string,   
+        @Query('minEffectiveness') minEffectiveness?: number,
+        @Query('minSatisfaction') minSatisfaction?: number,
+    ) {
+        const filters = {
+            caseNumber,
+            serviceType,
+            dependency,
+            reportedById,
+            technicianId,
+            status,
+            typeCase,
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            minEffectiveness,
+            minSatisfaction,
+        };
+        return this.caseService.search(filters);
     }
 
     @Put(':id')
-    async update(@Param('id') id: string, @Body() updateCaseDto: UpdateCaseDto): Promise<Case> {
-        return this.caseService.updateCase(id, updateCaseDto);
+    async update(@Param('id') id: string, @Body() updateData: Partial<Case>) {
+        return this.caseService.update(id, updateData);
     }
 
     @Delete(':id')
-    async remove(@Param('id') id: string): Promise<void> {
-        return this.caseService.deleteCase(id);
+    async delete(@Param('id') id: string) {
+        return this.caseService.delete(id);
     }
 }
