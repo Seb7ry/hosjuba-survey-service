@@ -99,7 +99,8 @@ export class CaseService {
     }
 
     async delete(id: string): Promise<void> {
-        const result = await this.caseModel.findByIdAndDelete(id).exec();
+        const result = await this.findByCaseNumber(id);
+        await this.caseModel.findByIdAndDelete(result._id);
         if (!result) {
             throw new NotFoundException(`Case with ID ${id} not found`);
         }
