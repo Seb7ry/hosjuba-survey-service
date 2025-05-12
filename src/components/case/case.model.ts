@@ -30,6 +30,9 @@ export class Case {
     numeroCaso: string;
 
     @Prop({ required: true })
+    typeCaso: string;
+
+    @Prop({ required: true })
     dependencia: string;
 
     @Prop({ required: true })

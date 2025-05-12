@@ -17,6 +17,32 @@ export class UserService {
         private readonly sessionService: SessionService
     ) { }
 
+    async onModuleInit() {
+        try {
+            const adminUsername = process.env.ADMIN_USERNAME;
+            const adminPassword = process.env.ADMIN_PASSWORD;
+            const adminName = process.env.ADMIN_NAME;
+
+            const adminExists = await this.userModel.findOne({ username: adminUsername });
+
+            if (!adminExists) {
+                const adminData: Partial<User> = {
+                    _id: adminUsername,
+                    username: adminUsername,
+                    password: adminPassword,
+                    name: adminName,
+                    department: 'Administración',
+                    position: 'Administrador',
+                };
+
+                const adminUser = new this.userModel(adminData);
+                await adminUser.save();
+            }
+        } catch (error) {
+            throw new InternalServerErrorException('Error en la inicialización de servicio usuario.', error.message);
+        }
+    }
+
     async listUsers(): Promise<User[]> {
         try {
             const users = await this.userModel.find().exec();
@@ -79,26 +105,26 @@ export class UserService {
     async updateUser(
         req: Request,
         data: Partial<User> & { username: string }
-      ) {
+    ) {
         try {
-          const { username, ...updates } = data;
-      
-          const user = await this.userModel.findOne({ username }).exec();
-          if (!user) throw new HttpException('El usuario no existe.', HttpStatus.NOT_FOUND);
-      
-          if (updates.name !== undefined) user.name = updates.name;
-          if (updates.department !== undefined) user.department = updates.department;
-          if (updates.position !== undefined) user.position = updates.position;
-          if (updates.password !== undefined) user.password = updates.password;
-          if (updates.signature !== undefined) user.signature = updates.signature;
-      
-          return await user.save();
+            const { username, ...updates } = data;
+
+            const user = await this.userModel.findOne({ username }).exec();
+            if (!user) throw new HttpException('El usuario no existe.', HttpStatus.NOT_FOUND);
+
+            if (updates.name !== undefined) user.name = updates.name;
+            if (updates.department !== undefined) user.department = updates.department;
+            if (updates.position !== undefined) user.position = updates.position;
+            if (updates.password !== undefined) user.password = updates.password;
+            if (updates.signature !== undefined) user.signature = updates.signature;
+
+            return await user.save();
         } catch (e) {
-          if (e instanceof HttpException) throw e;
-          throw new InternalServerErrorException('Error al actualizar el usuario.', e.message);
+            if (e instanceof HttpException) throw e;
+            throw new InternalServerErrorException('Error al actualizar el usuario.', e.message);
         }
-      }
-      
+    }
+
 
     async deleteUser(req: Request, username: string) {
         try {
