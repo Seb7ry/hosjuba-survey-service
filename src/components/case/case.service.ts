@@ -88,8 +88,9 @@ export class CaseService {
     }
 
     async update(id: string, updateData: Partial<Case>): Promise<CaseDocument> {
+        const caseSearch = await this.findByCaseNumber(id);
         const updatedCase = await this.caseModel
-            .findByIdAndUpdate(id, updateData, { new: true })
+            .findByIdAndUpdate(caseSearch._id, updateData, { new: true })
             .exec();
 
         if (!updatedCase) {
