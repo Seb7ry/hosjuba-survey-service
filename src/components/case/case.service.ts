@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Case, CaseDocument } from './case.model';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 interface SearchFilters {
     caseNumber?: string;
@@ -15,22 +17,35 @@ interface SearchFilters {
     endDate?: Date;
     minEffectiveness?: number;
     minSatisfaction?: number;
+    priority?: string;
+    reportedByName?: string;
 }
+
+const INITIAL_CASE_NUMBER = parseInt(process.env.INITIAL_CASE_NUMBER || '2000', 10);
 
 @Injectable()
 export class CaseService {
+
     constructor(
         @InjectModel(Case.name) private readonly caseModel: Model<CaseDocument>,
     ) { }
 
     async create(caseData: Partial<Case>): Promise<CaseDocument> {
         try {
-            const exists = await this.caseModel.findOne({ caseNumber: caseData.caseNumber });
+            const lastCase = await this.caseModel.findOne({}).sort({ caseNumber: -1 }).select('caseNumber');
+            const lastNumber = Number(lastCase?.caseNumber) || INITIAL_CASE_NUMBER;
+            const nextNumber = lastNumber + 1;
+
+            const exists = await this.caseModel.findOne({ caseNumber: nextNumber });
             if (exists) {
-                throw new Error('Case number already exists');
+                throw new Error(`Case number ${nextNumber} already exists`);
             }
 
-            const newCase = new this.caseModel(caseData);
+            const newCase = new this.caseModel({
+                ...caseData,
+                caseNumber: nextNumber,
+            });
+
             return await newCase.save();
         } catch (error) {
             throw error;
@@ -44,6 +59,7 @@ export class CaseService {
         }
         return caseFound;
     }
+
     async search(filters: SearchFilters): Promise<CaseDocument[]> {
         const query: any = {};
 
@@ -51,40 +67,49 @@ export class CaseService {
         if (filters.serviceType) query.serviceType = filters.serviceType;
         if (filters.dependency) query.dependency = filters.dependency;
         if (filters.status) query.status = filters.status;
+        if (filters.typeCase) query.typeCase = filters.typeCase;
+
+        if (filters.priority) {
+            query['serviceData.priority'] = filters.priority;
+        }
+
+        if (filters.reportedByName) {
+            query['reportedBy.name'] = { $regex: filters.reportedByName, $options: 'i' };
+        }
 
         if (filters.reportedById) query['reportedBy._id'] = filters.reportedById;
         if (filters.technicianId) query['assignedTechnician._id'] = filters.technicianId;
-
-        if (filters.typeCase) query.typeCase = filters.typeCase;
 
         if (filters.startDate || filters.endDate) {
             const start = filters.startDate ? new Date(filters.startDate) : null;
             let end = filters.endDate ? new Date(filters.endDate) : null;
 
-            if (start) {
-                start.setUTCHours(0, 0, 0, 0); 
-            }
-
+            if (start) start.setUTCHours(0, 0, 0, 0);
             if (end) {
-                end.setUTCHours(23, 59, 59, 999);  
+                end.setUTCHours(23, 59, 59, 999);
             } else if (start) {
                 end = new Date(start);
                 end.setUTCHours(23, 59, 59, 999);
             }
 
             if (start && end && end <= start) {
-                throw new BadRequestException('End date must be after start date.');
+                throw new BadRequestException('La fecha final debe ser mayor a la inicial.');
             }
 
             query.reportedAt = {};
-            if (start) query.reportedAt.$gte = start;  
-            if (end) query.reportedAt.$lte = end;     
+            if (start) query.reportedAt.$gte = start;
+            if (end) query.reportedAt.$lte = end;
         }
 
-        if (filters.minEffectiveness != null) query['effectivenessRating.value'] = { $gte: filters.minEffectiveness };
-        if (filters.minSatisfaction != null) query['satisfactionRating.value'] = { $gte: filters.minSatisfaction };
+        if (filters.minEffectiveness != null) {
+            query['effectivenessRating.value'] = { $gte: filters.minEffectiveness };
+        }
 
-        return this.caseModel.find(query).sort({ reportedAt: -1 }).exec();
+        if (filters.minSatisfaction != null) {
+            query['satisfactionRating.value'] = { $gte: filters.minSatisfaction };
+        }
+
+        return this.caseModel.find(query).sort({ reportedAt: -1 }).lean().exec();
     }
 
     async update(id: string, updateData: Partial<Case>): Promise<CaseDocument> {

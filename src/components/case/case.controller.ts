@@ -1,7 +1,6 @@
-import { Controller, Post, Get, Put, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Body, Query, BadRequestException } from '@nestjs/common';
 import { CaseService } from './case.service';
 import { Case } from './case.model';
-import { BadRequestException } from '@nestjs/common';
 
 @Controller('case')
 export class CaseController {
@@ -33,6 +32,8 @@ export class CaseController {
         @Query('endDate') endDate?: string,   
         @Query('minEffectiveness') minEffectiveness?: number,
         @Query('minSatisfaction') minSatisfaction?: number,
+        @Query('priority') priority?: string, // NUEVO
+        @Query('reportedByName') reportedByName?: string // NUEVO
     ) {
         const filters = {
             caseNumber,
@@ -46,6 +47,8 @@ export class CaseController {
             endDate: endDate ? new Date(endDate) : undefined,
             minEffectiveness,
             minSatisfaction,
+            priority,
+            reportedByName
         };
         return this.caseService.search(filters);
     }
