@@ -30,19 +30,15 @@ export class UserRef {
 @Schema({ timestamps: true })
 export class Case {
 
-  @Prop({ required: true })
+  @Prop()
   caseNumber: string;
 
   @Prop({
-    required: true,
-    enum: ["Mantenimiento", "Preventivo"]
+    required: true
   })
   typeCase: string;
 
-  @Prop({
-    required: true,
-    enum: ["Solicitud", "Incidente", "Concepto Técnico"]
-  })
+  @Prop({ required: true })
   serviceType: string;
 
   @Prop({ required: true })
@@ -57,7 +53,7 @@ export class Case {
   @Prop({ default: Date.now })
   reportedAt: Date;
 
-  @Prop({ required: true })
+  @Prop()
   observations: string;
 
   @Prop({ type: UserRef })

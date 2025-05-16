@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Case, CaseDocument } from './case.model';
+import * as moment from 'moment-timezone';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -32,9 +33,37 @@ export class CaseService {
 
     async create(caseData: Partial<Case>): Promise<CaseDocument> {
         try {
-            const lastCase = await this.caseModel.findOne({}).sort({ caseNumber: -1 }).select('caseNumber');
-            const lastNumber = Number(lastCase?.caseNumber) || INITIAL_CASE_NUMBER;
-            const nextNumber = lastNumber + 1;
+            const currentYear = moment().tz('America/Bogota').year();
+
+            const lastCase = await this.caseModel.findOne({
+                caseNumber: new RegExp(`^${currentYear}`)
+            }).sort({ caseNumber: -1 }).select('caseNumber');
+
+            const envInitial = process.env.INITIAL_CASE_NUMBER ?
+                parseInt(process.env.INITIAL_CASE_NUMBER) :
+                parseInt(`${currentYear}0001`);
+
+            let nextNumber: number;
+
+            if (lastCase) {
+                const lastCaseNumber = parseInt(lastCase.caseNumber.toString());
+                const lastCaseYear = parseInt(lastCase.caseNumber.toString().substring(0, 4));
+
+                if (lastCaseYear === currentYear) {
+                    nextNumber = lastCaseNumber + 1;
+                } else {
+                    nextNumber = parseInt(`${currentYear}0001`);
+                }
+
+                if (envInitial > nextNumber) {
+                    nextNumber = envInitial;
+                }
+            } else {
+                nextNumber = Math.max(
+                    envInitial,
+                    parseInt(`${currentYear}0001`)
+                );
+            }
 
             const exists = await this.caseModel.findOne({ caseNumber: nextNumber });
             if (exists) {

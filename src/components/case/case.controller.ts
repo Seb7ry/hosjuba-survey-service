@@ -1,10 +1,10 @@
-import { Controller, Post, Get, Put, Delete, Param, Body, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Body, Query, BadRequestException, UseGuards } from '@nestjs/common';
 import { CaseService } from './case.service';
 import { Case } from './case.model';
 
 @Controller('case')
 export class CaseController {
-    constructor(private readonly caseService: CaseService) {}
+    constructor(private readonly caseService: CaseService) { }
 
     @Post()
     async create(@Body() caseData: Partial<Case>) {
@@ -27,9 +27,9 @@ export class CaseController {
         @Query('reportedById') reportedById?: string,
         @Query('technicianId') technicianId?: string,
         @Query('status') status?: string,
-        @Query('typeCase') typeCase?: string,  
-        @Query('startDate') startDate?: string, 
-        @Query('endDate') endDate?: string,   
+        @Query('typeCase') typeCase?: string,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
         @Query('minEffectiveness') minEffectiveness?: number,
         @Query('minSatisfaction') minSatisfaction?: number,
         @Query('priority') priority?: string, // NUEVO

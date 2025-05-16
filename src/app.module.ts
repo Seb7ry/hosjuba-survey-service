@@ -14,12 +14,16 @@ import { OneDriveModule } from './services/one-drive/one-drive.module';
 import { CaseModule } from './components/case/case.module';
 import { DepartmentModule } from './components/department/department.module';
 import { PositionModule } from './components/position/position.module';
+import { EquipmentModule } from './components/equipment/equipment.module';
+import { EquipTypeModule } from './components/equip_type/equip_type.module';
 
 @Module({
   imports: [
     UserModule,
     AuthModule,
     CaseModule,
+    EquipmentModule,
+    EquipTypeModule,
     SessionModule,
     HistoryModule,
     PositionModule,
