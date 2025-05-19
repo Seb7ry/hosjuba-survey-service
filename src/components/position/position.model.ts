@@ -8,5 +8,3 @@ export class Position {
     name: string;
 }
 export const PositionSchema = SchemaFactory.createForClass(Position);
-
-PositionSchema.index({ name: 1 });

@@ -8,13 +8,11 @@ export class HistoryController {
     constructor(private readonly historyService: HistoryService) { }
 
     @Get()
-    @UseGuards(AuthGuard)
     async getHistory() {
         return this.historyService.getAllHistory();
     }
 
     @Get('filter')
-    @UseGuards(AuthGuard)
     async getHistoryFilter(
         @Query('username') username: string,
         @Query('startDate') startDate: string,
