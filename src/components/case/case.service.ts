@@ -20,6 +20,8 @@ interface SearchFilters {
     minSatisfaction?: number;
     priority?: string;
     reportedByName?: string;
+    technicianName?: string;
+    equipmentName?: string;
 }
 
 const INITIAL_CASE_NUMBER = parseInt(process.env.INITIAL_CASE_NUMBER || '2000', 10);
@@ -97,17 +99,18 @@ export class CaseService {
         if (filters.dependency) query.dependency = filters.dependency;
         if (filters.status) query.status = filters.status;
         if (filters.typeCase) query.typeCase = filters.typeCase;
-
-        if (filters.priority) {
-            query['serviceData.priority'] = filters.priority;
-        }
-
-        if (filters.reportedByName) {
-            query['reportedBy.name'] = { $regex: filters.reportedByName, $options: 'i' };
-        }
-
+        if (filters.priority) query['serviceData.priority'] = filters.priority;
+        if (filters.reportedByName) query['reportedBy.name'] = { $regex: filters.reportedByName, $options: 'i' };
         if (filters.reportedById) query['reportedBy._id'] = filters.reportedById;
         if (filters.technicianId) query['assignedTechnician._id'] = filters.technicianId;
+        if (filters.technicianName) query['assignedTechnician.name'] = { $regex: filters.technicianName, $options: 'i' };
+
+        if (filters.equipmentName) {
+            query.$or = [
+                { 'serviceData.name': { $regex: filters.equipmentName, $options: 'i' } },
+                { 'serviceData.equipments.name': { $regex: filters.equipmentName, $options: 'i' } }
+            ];
+        }
 
         if (filters.startDate || filters.endDate) {
             const start = filters.startDate ? new Date(filters.startDate) : null;

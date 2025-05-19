@@ -32,8 +32,10 @@ export class CaseController {
         @Query('endDate') endDate?: string,
         @Query('minEffectiveness') minEffectiveness?: number,
         @Query('minSatisfaction') minSatisfaction?: number,
-        @Query('priority') priority?: string, // NUEVO
-        @Query('reportedByName') reportedByName?: string // NUEVO
+        @Query('priority') priority?: string,
+        @Query('reportedByName') reportedByName?: string,
+        @Query('technicianName') technicianName?: string, 
+        @Query('equipmentName') equipmentName?: string   
     ) {
         const filters = {
             caseNumber,
@@ -48,7 +50,9 @@ export class CaseController {
             minEffectiveness,
             minSatisfaction,
             priority,
-            reportedByName
+            reportedByName,
+            technicianName,    
+            equipmentName      
         };
         return this.caseService.search(filters);
     }

@@ -22,22 +22,21 @@ export class EquipTypeController {
         return this.equipTypeService.createEquipType(req, name);
     }
 
-    @Put(':id')
-    @UseGuards(AuthGuard)
+    @Put(':lastName')
     async updateEquipType(
         @Req() req: Request,
-        @Param('id') id: string,
-        @Body('name') newName: string,
+        @Param('lastName') lastName: string,
+        @Body('newName') newName: string,
     ) {
-        return this.equipTypeService.updateEquipType(req, id, newName);
+        return this.equipTypeService.updateEquipType(req, lastName, newName);
     }
 
-    @Delete(':id')
+    @Delete(':name')
     @UseGuards(AuthGuard)
     async deleteEquipType(
         @Req() req: Request,
-        @Param('id') id: string,
+        @Param('name') name: string,
     ) {
-        return this.equipTypeService.deleteEquipType(req, id);
+        return this.equipTypeService.deleteEquipType(req, name);
     }
 }

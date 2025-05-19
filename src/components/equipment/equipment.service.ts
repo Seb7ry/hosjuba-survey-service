@@ -18,17 +18,30 @@ export class EquipmentService {
 
     async listEquipments(): Promise<Equipment[]> {
         try {
-            const equipments = await this.equipmentModel.find().exec();
+            const equipments = await this.equipmentModel.find().sort({ name: 1 }).lean().exec();
             return equipments;
         } catch (e) {
             throw new InternalServerErrorException('Error al listar los equipos.', e.message);
         }
     }
 
-    async createEquipment(req: Request, name: string, brand: string, type:string, model: string, serial?: string, numberInventory?: string) {
+    async createEquipment(
+        req: Request,
+        name: string,
+        brand: string,
+        model: string,
+        type: string,
+        department: string,
+        serial?: string,
+        numberInventory?: string,
+    ) {
         try {
-            if (!name || !brand || !model) {
+            if (!name || !brand || !model || !type || !department) {
                 throw new HttpException('Se requieren nombre, marca y modelo para crear el equipo.', HttpStatus.BAD_REQUEST);
+            }
+
+            if (!serial && !numberInventory) {
+                throw new HttpException('Debe proporcionar al menos el número de serie o el número de inventario.', HttpStatus.BAD_REQUEST);
             }
 
             const existingEquipment = await this.equipmentModel.findOne({ name }).exec();
@@ -47,9 +60,10 @@ export class EquipmentService {
                 name,
                 brand,
                 model,
+                type,
+                department,
                 serial,
                 numberInventory,
-                type,
             };
 
             const equipment = new this.equipmentModel(equipmentData);
@@ -68,8 +82,8 @@ export class EquipmentService {
             }
 
             if (updateData.name && updateData.name !== name) {
-                const existingEquipment = await this.equipmentModel.findOne({ 
-                    name: updateData.name 
+                const existingEquipment = await this.equipmentModel.findOne({
+                    name: updateData.name
                 }).exec();
                 if (existingEquipment) {
                     throw new HttpException('Ya existe otro equipo con este nombre.', HttpStatus.CONFLICT);
@@ -77,8 +91,8 @@ export class EquipmentService {
             }
 
             if (updateData.serial && updateData.serial !== equipment.serial) {
-                const existingSerial = await this.equipmentModel.findOne({ 
-                    serial: updateData.serial 
+                const existingSerial = await this.equipmentModel.findOne({
+                    serial: updateData.serial
                 }).exec();
                 if (existingSerial) {
                     throw new HttpException('Ya existe otro equipo con este número de serie.', HttpStatus.CONFLICT);

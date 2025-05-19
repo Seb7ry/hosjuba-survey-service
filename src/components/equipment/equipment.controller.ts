@@ -13,13 +13,13 @@ export class EquipmentController {
     }
 
     @Post()
-
     async createEquipment(
         @Req() req: Request,
         @Body('name') name: string,
         @Body('brand') brand: string,
         @Body('model') model: string,
         @Body('type') type: string,
+        @Body('department') department: string,
         @Body('serial') serial?: string,
         @Body('numberInventory') numberInventory?: string,
     ) {
@@ -29,6 +29,7 @@ export class EquipmentController {
             brand,
             model,
             type,
+            department,
             serial,
             numberInventory
         );

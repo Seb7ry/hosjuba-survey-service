@@ -22,8 +22,9 @@ export class Equipment {
 
     @Prop()
     numberInventory?: string;
+
+    @Prop({ required: true })
+    department: string;
 }
 
 export const EquipmentSchema = SchemaFactory.createForClass(Equipment);
-
-EquipmentSchema.index({ name: 1 });

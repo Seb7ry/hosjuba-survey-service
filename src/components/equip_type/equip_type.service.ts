@@ -31,7 +31,7 @@ export class EquipTypeService {
 
             const existingEquipType = await this.equipTypeModel.findOne({ name }).exec();
             if (existingEquipType) throw new HttpException('El nombre del tipo de equipo ya existe.', HttpStatus.BAD_REQUEST);
-            
+
             const equipType = new this.equipTypeModel({ name });
             return await equipType.save();
         } catch (e) {
@@ -40,9 +40,9 @@ export class EquipTypeService {
         }
     }
 
-    async updateEquipType(req: Request, id: string, newName: string) {
+    async updateEquipType(req: Request, lastName: string, newName: string) {
         try {
-            const equipType = await this.equipTypeModel.findById(id).exec();
+            const equipType = await this.equipTypeModel.findOne({ name: lastName }).exec();
             if (!equipType) throw new HttpException('El tipo de equipo no existe.', HttpStatus.NOT_FOUND);
 
             if (newName !== equipType.name) {
@@ -58,14 +58,14 @@ export class EquipTypeService {
         }
     }
 
-    async deleteEquipType(req: Request, id: string) {
+    async deleteEquipType(req: Request, name: string) {
         try {
-            if (!id) throw new HttpException('Debe proporcionar un ID de tipo de equipo.', HttpStatus.BAD_REQUEST);
-            
-            const equipType = await this.equipTypeModel.findById(id).exec();
+            if (!name) throw new HttpException('Debe proporcionar un tipo de equipo.', HttpStatus.BAD_REQUEST);
+
+            const equipType = await this.equipTypeModel.findOne({ name }).exec();
             if (!equipType) throw new HttpException('El tipo de equipo no existe.', HttpStatus.NOT_FOUND);
 
-            await this.equipTypeModel.deleteOne({ _id: id }).exec();
+            await this.equipTypeModel.deleteOne({ name }).exec();
             return { message: 'Tipo de equipo eliminado correctamente.' };
         } catch (e) {
             if (e instanceof HttpException) throw e;

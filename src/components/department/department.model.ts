@@ -8,5 +8,3 @@ export class Department {
     name: string;
 }
 export const DepartmentSchema = SchemaFactory.createForClass(Department);
-
-DepartmentSchema.index({ name: 1 });
