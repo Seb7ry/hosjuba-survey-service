@@ -23,6 +23,7 @@ export class EquipTypeController {
     }
 
     @Put(':lastName')
+    @UseGuards(AuthGuard)
     async updateEquipType(
         @Req() req: Request,
         @Param('lastName') lastName: string,

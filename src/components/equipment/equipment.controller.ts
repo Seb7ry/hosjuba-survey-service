@@ -8,11 +8,13 @@ export class EquipmentController {
     constructor(private readonly equipmentService: EquipmentService) { }
 
     @Get()
+    @UseGuards(AuthGuard)
     async listEquipment() {
         return this.equipmentService.listEquipments();
     }
 
     @Post()
+    @UseGuards(AuthGuard)
     async createEquipment(
         @Req() req: Request,
         @Body('name') name: string,
@@ -36,6 +38,7 @@ export class EquipmentController {
     }
 
     @Put(':name')
+    @UseGuards(AuthGuard)
     async updateEquipment(
         @Req() req: Request,
         @Param('name') name: string,
@@ -45,6 +48,7 @@ export class EquipmentController {
     }
 
     @Delete(':name')
+    @UseGuards(AuthGuard)
     async deleteEquipment(
         @Req() req: Request,
         @Param('name') name: string,

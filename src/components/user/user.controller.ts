@@ -19,7 +19,6 @@ export class UserController {
         return this.userService.findUserByUsername(username);
     }
 
-    // En el controlador (user.controller.ts)
     @Post()
     @UseGuards(AuthGuard)
     async createUser(
@@ -29,7 +28,7 @@ export class UserController {
         @Body('name') name: string,
         @Body('department') department: string,
         @Body('position') position: string,
-        @Body('signature') signature?: string  // Añade este parámetro
+        @Body('signature') signature?: string 
     ) {
         return this.userService.createUser(req, username, password, name, department, position, signature);
     }
