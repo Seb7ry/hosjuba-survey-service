@@ -16,9 +16,11 @@ import { DepartmentModule } from './components/department/department.module';
 import { PositionModule } from './components/position/position.module';
 import { EquipmentModule } from './components/equipment/equipment.module';
 import { EquipTypeModule } from './components/equip_type/equip_type.module';
+import { PdfModule } from './components/pdf/pdf.module';
 
 @Module({
   imports: [
+    PdfModule,
     UserModule,
     AuthModule,
     CaseModule,

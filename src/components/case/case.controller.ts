@@ -62,7 +62,6 @@ export class CaseController {
     }
 
     @Put(':id')
-    @UseGuards(AuthGuard)
     async update(@Param('id') id: string, @Body() updateData: Partial<Case>) {
         return this.caseService.update(id, updateData);
     }
