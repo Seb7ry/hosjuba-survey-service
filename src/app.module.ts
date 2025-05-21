@@ -17,6 +17,7 @@ import { PositionModule } from './components/position/position.module';
 import { EquipmentModule } from './components/equipment/equipment.module';
 import { EquipTypeModule } from './components/equip_type/equip_type.module';
 import { PdfModule } from './components/pdf/pdf.module';
+import { ReportModule } from './components/report/report.module';
 
 @Module({
   imports: [
@@ -24,11 +25,12 @@ import { PdfModule } from './components/pdf/pdf.module';
     UserModule,
     AuthModule,
     CaseModule,
-    EquipmentModule,
-    EquipTypeModule,
+    ReportModule,
     SessionModule,
     HistoryModule,
     PositionModule,
+    EquipmentModule,
+    EquipTypeModule,
     DepartmentModule,
     GoogleDriveModule,
     OneDriveModule,

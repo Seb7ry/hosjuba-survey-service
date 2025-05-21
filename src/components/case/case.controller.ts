@@ -23,7 +23,6 @@ export class CaseController {
     }
 
     @Get()
-    @UseGuards(AuthGuard)
     async search(
         @Query('caseNumber') caseNumber?: string,
         @Query('serviceType') serviceType?: string,
