@@ -168,7 +168,33 @@ export class CaseService {
             originalCase: result.toObject(),
             deletedAt: new Date(),
         });
-        
+
         await this.caseModel.findByIdAndDelete(result._id);
+    }
+
+    async getDeletedCases(caseNumber?: string): Promise<DeletedCaseDocument[] | DeletedCaseDocument | null> {
+        if (caseNumber) {
+            return this.deletedCaseModel.findOne({ caseNumber }).lean().exec();
+        }
+
+        return this.deletedCaseModel.find().sort({ deletedAt: -1 }).lean().exec();
+    }
+
+    async restoreDeletedCase(caseNumber: string): Promise<CaseDocument> {
+        const deleted = await this.deletedCaseModel.findOne({ 'originalCase.caseNumber': caseNumber }).lean();
+
+        if (!deleted) {
+            throw new NotFoundException(`No se encontró un caso eliminado con número ${caseNumber}`);
+        }
+
+        const exists = await this.caseModel.findOne({ caseNumber: caseNumber });
+        if (exists) {
+            throw new BadRequestException(`El caso ${caseNumber} ya existe en la colección principal`);
+        }
+
+        const restoredCase = new this.caseModel(deleted.originalCase);
+        await restoredCase.save();
+        await this.deletedCaseModel.deleteOne({ _id: deleted._id });
+        return restoredCase;
     }
 }

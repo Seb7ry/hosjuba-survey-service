@@ -37,19 +37,26 @@ export class ReportService {
                     start: moment(`${currentYear}-01-01`).startOf('day').toDate(),
                     end: moment(`${currentYear}-12-31`).endOf('day').toDate(),
                 };
+
             case 'semestral':
-                const semester = now.month() < 6 ? 1 : 2;
+                if (month == null || month < 1 || month > 2) {
+                    throw new Error('Para intervalo semestral, el mes debe ser 1 (primer semestre) o 2 (segundo semestre)');
+                }
                 return {
-                    start: moment(`${currentYear}-${semester === 1 ? '01' : '07'}-01`).startOf('day').toDate(),
-                    end: moment(`${currentYear}-${semester === 1 ? '06' : '12'}-${semester === 1 ? '30' : '31'}`).endOf('day').toDate(),
+                    start: moment(`${currentYear}-${month === 1 ? '01' : '07'}-01`).startOf('day').toDate(),
+                    end: moment(`${currentYear}-${month === 1 ? '06' : '12'}-${month === 1 ? '30' : '31'}`).endOf('day').toDate(),
                 };
+
             case 'trimestral':
-                const quarter = Math.floor(now.month() / 3) + 1;
-                const startMonth = (quarter - 1) * 3;
+                if (month == null || month < 1 || month > 4) {
+                    throw new Error('Para intervalo trimestral, el mes debe ser un trimestre válido (1-4)');
+                }
+                const startMonth = (month - 1) * 3;
                 return {
                     start: moment().year(currentYear).month(startMonth).startOf('month').toDate(),
                     end: moment().year(currentYear).month(startMonth + 2).endOf('month').endOf('day').toDate(),
                 };
+
             case 'mensual':
                 if (month == null) {
                     throw new Error('Para intervalo mensual se requiere el parámetro "month"');
@@ -58,6 +65,7 @@ export class ReportService {
                     start: moment().year(currentYear).month(month - 1).startOf('month').toDate(),
                     end: moment().year(currentYear).month(month - 1).endOf('month').toDate(),
                 };
+
             case 'personalizado':
                 if (!startDate || !endDate) {
                     throw new Error('Para intervalo personalizado se requieren fechas de inicio y fin');
@@ -66,6 +74,7 @@ export class ReportService {
                     start: moment(startDate).startOf('day').toDate(),
                     end: moment(endDate).endOf('day').toDate(),
                 };
+
             default:
                 throw new Error('Intervalo de tiempo no válido');
         }

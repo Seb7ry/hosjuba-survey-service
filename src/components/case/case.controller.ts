@@ -2,25 +2,13 @@ import { Controller, Post, Get, Put, Delete, Param, Body, Query, BadRequestExcep
 import { CaseService } from './case.service';
 import { Case } from './case.model';
 import { AuthGuard } from '../authentication/auth.guard';
+import { DeletedCaseDocument } from './deleted-case.model';
 
 @Controller('case')
 export class CaseController {
     constructor(private readonly caseService: CaseService) { }
 
-    @Post()
-    @UseGuards(AuthGuard)
-    async create(@Body() caseData: Partial<Case>) {
-        if (!caseData.caseNumber || !caseData.serviceType || !caseData.dependency) {
-            throw new BadRequestException('Case number, service type and dependency are required');
-        }
-        return this.caseService.create(caseData);
-    }
 
-    @Get(':caseNumber')
-    @UseGuards(AuthGuard)
-    async getCase(@Param('caseNumber') caseNumber: string) {
-        return this.caseService.findByCaseNumber(caseNumber);
-    }
 
     @Get()
     async search(
@@ -60,7 +48,37 @@ export class CaseController {
         return this.caseService.search(filters);
     }
 
+    @Get('deleted')
+    async getDeleted(
+        @Query('caseNumber') caseNumber?: string,
+    ) {
+        return this.caseService.getDeletedCases(caseNumber);
+    }
+
+
+    @Get('restore/:caseNumber')
+    @UseGuards(AuthGuard)
+    async restore(@Param('caseNumber') caseNumber: string) {
+        return this.caseService.restoreDeletedCase(caseNumber);
+    }
+
+    @Get(':caseNumber')
+    @UseGuards(AuthGuard)
+    async getCase(@Param('caseNumber') caseNumber: string) {
+        return this.caseService.findByCaseNumber(caseNumber);
+    }
+
+    @Post()
+    @UseGuards(AuthGuard)
+    async create(@Body() caseData: Partial<Case>) {
+        if (!caseData.caseNumber || !caseData.serviceType || !caseData.dependency) {
+            throw new BadRequestException('Case number, service type and dependency are required');
+        }
+        return this.caseService.create(caseData);
+    }
+
     @Put(':id')
+    @UseGuards(AuthGuard)
     async update(@Param('id') id: string, @Body() updateData: Partial<Case>) {
         return this.caseService.update(id, updateData);
     }
