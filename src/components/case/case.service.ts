@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Case, CaseDocument } from './case.model';
 import * as moment from 'moment-timezone';
 import * as dotenv from 'dotenv';
+import { DeletedCase, DeletedCaseDocument } from './deleted-case.model';
 dotenv.config();
 
 interface SearchFilters {
@@ -31,6 +32,7 @@ export class CaseService {
 
     constructor(
         @InjectModel(Case.name) private readonly caseModel: Model<CaseDocument>,
+        @InjectModel(DeletedCase.name) private readonly deletedCaseModel: Model<DeletedCaseDocument>,
     ) { }
 
     async create(caseData: Partial<Case>): Promise<CaseDocument> {
@@ -158,9 +160,15 @@ export class CaseService {
 
     async delete(id: string): Promise<void> {
         const result = await this.findByCaseNumber(id);
-        await this.caseModel.findByIdAndDelete(result._id);
         if (!result) {
             throw new NotFoundException(`Case with ID ${id} not found`);
         }
+
+        await this.deletedCaseModel.create({
+            originalCase: result.toObject(),
+            deletedAt: new Date(),
+        });
+        
+        await this.caseModel.findByIdAndDelete(result._id);
     }
 }

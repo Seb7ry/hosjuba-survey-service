@@ -6,6 +6,7 @@ import { Case, CaseSchema } from "./case.model";
 import { JwtModule } from "@nestjs/jwt";
 import { CaseController } from "./case.controller";
 import { CaseService } from "./case.service";
+import { DeletedCase, DeletedCaseSchema } from "./deleted-case.model";
 
 @Module({
     imports: [
@@ -13,6 +14,10 @@ import { CaseService } from "./case.service";
         SessionModule,
         MongooseModule.forFeature([
             { name: Case.name, schema: CaseSchema },
+        ]),
+        MongooseModule.forFeature([
+            { name: Case.name, schema: CaseSchema },
+            { name: DeletedCase.name, schema: DeletedCaseSchema },
         ]),
         JwtModule.registerAsync({
             useFactory: () => ({
