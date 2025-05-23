@@ -187,14 +187,25 @@ export class CaseService {
             throw new NotFoundException(`No se encontró un caso eliminado con número ${caseNumber}`);
         }
 
-        const exists = await this.caseModel.findOne({ caseNumber: caseNumber });
-        if (exists) {
-            throw new BadRequestException(`El caso ${caseNumber} ya existe en la colección principal`);
+        let baseNumber = deleted.originalCase.caseNumber.toString();
+        let restoredNumber = baseNumber + 'R';
+        let suffix = 1;
+
+        while (await this.caseModel.findOne({ caseNumber: restoredNumber })) {
+            restoredNumber = baseNumber + 'R' + suffix;
+            suffix++;
         }
 
-        const restoredCase = new this.caseModel(deleted.originalCase);
+        const restoredData = {
+            ...deleted.originalCase,
+            caseNumber: restoredNumber,
+            _id: undefined
+        };
+
+        const restoredCase = new this.caseModel(restoredData);
         await restoredCase.save();
         await this.deletedCaseModel.deleteOne({ _id: deleted._id });
+
         return restoredCase;
     }
 }

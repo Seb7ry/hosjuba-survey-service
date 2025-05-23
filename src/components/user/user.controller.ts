@@ -28,7 +28,7 @@ export class UserController {
         @Body('name') name: string,
         @Body('department') department: string,
         @Body('position') position: string,
-        @Body('signature') signature?: string 
+        @Body('signature') signature?: string
     ) {
         return this.userService.createUser(req, username, password, name, department, position, signature);
     }
@@ -36,7 +36,7 @@ export class UserController {
     @Put()
     @UseGuards(AuthGuard)
     async updateUser(@Req() req: Request, @Body() body: any) {
-      return this.userService.updateUser(req, body);
+        return this.userService.updateUser(req, body);
     }
 
     @Delete(':username')

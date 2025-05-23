@@ -5,7 +5,7 @@ export type CaseDocument = Case & Document;
 
 @Schema({ _id: false })
 export class Rating {
-  @Prop({ min: 1, max: 4 })
+  @Prop({ min: 0, max: 4 })
   value: number;
 }
 
@@ -32,6 +32,9 @@ export class Case {
 
   @Prop()
   caseNumber: string;
+
+  @Prop({ required: true })
+  toRating: boolean;
 
   @Prop({
     required: true
