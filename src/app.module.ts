@@ -4,7 +4,6 @@ import { UserModule } from './components/user/user.module';
 import { AuthModule } from './components/authentication/auth.module';
 import { HistoryModule } from './components/history/history.module';
 import { SessionModule } from './components/session/session.module';
-import { GoogleDriveModule } from './services/google-drive/google-drive.module';
 
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
@@ -32,7 +31,6 @@ import { ReportModule } from './components/report/report.module';
     EquipmentModule,
     EquipTypeModule,
     DepartmentModule,
-    GoogleDriveModule,
     OneDriveModule,
     ConfigModule.forRoot({
       isGlobal: true,

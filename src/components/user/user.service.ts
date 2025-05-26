@@ -31,7 +31,7 @@ export class UserService {
                     username: adminUsername,
                     password: adminPassword,
                     name: adminName,
-                    department: 'Administración',
+                    department: 'Sistemas',
                     position: 'Administrador',
                 };
 
