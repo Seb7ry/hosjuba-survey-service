@@ -22,6 +22,7 @@ export class UserService {
             const adminUsername = process.env.ADMIN_USERNAME;
             const adminPassword = process.env.ADMIN_PASSWORD;
             const adminName = process.env.ADMIN_NAME;
+            const adminDepartment = process.env.ADMIN_DEPENDENCY;
 
             const adminExists = await this.userModel.findOne({ username: adminUsername });
 
@@ -31,7 +32,7 @@ export class UserService {
                     username: adminUsername,
                     password: adminPassword,
                     name: adminName,
-                    department: 'Sistemas',
+                    department: adminDepartment,
                     position: 'Administrador',
                 };
 

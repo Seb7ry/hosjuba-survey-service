@@ -143,7 +143,7 @@ export class CaseService {
             query['satisfactionRating.value'] = { $gte: filters.minSatisfaction };
         }
 
-        return this.caseModel.find(query).sort({ reportedAt: -1 }).lean().exec();
+        return this.caseModel.find(query).sort({ caseNumber: -1 }).lean().exec();
     }
 
     async update(id: string, updateData: Partial<Case>): Promise<CaseDocument> {
