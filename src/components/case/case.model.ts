@@ -36,7 +36,7 @@ export class Case {
   @Prop({ required: true })
   toRating: boolean;
 
-  @Prop({ required: true })
+  @Prop()
   rated: boolean;
 
   @Prop({
