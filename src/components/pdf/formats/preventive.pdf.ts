@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any): Promise<PDFDocument> {
-    const templatePath = path.join(__dirname, '..', '..', '..', 'assets', 'PA-GSI-GARI-R1.pdf');
+    const templatePath = path.join(__dirname, '..', '..', '..', 'assets', 'PA-GSI-GARI-R2.pdf');
     if (!fs.existsSync(templatePath)) throw new Error(`No se encontró la plantilla: ${templatePath}`);
 
     const templateBytes = fs.readFileSync(templatePath);

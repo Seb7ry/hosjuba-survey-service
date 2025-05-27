@@ -39,7 +39,7 @@ export class PreventiveReport {
                 position: c.reportedBy?.position || 'N/A',
                 technicianName: c.assignedTechnician?.name || 'N/A',
                 technicianPosition: c.assignedTechnician?.position || 'N/A',
-                satisfactionRating: ratingMap[c.satisfactionRating] || 'N/A',
+                satisfactionRating: ratingMap[c.satisfactionRating.value] || 'N/A',
                 status: c.status
             });
         });

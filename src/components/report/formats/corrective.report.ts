@@ -49,8 +49,8 @@ export class CorrectiveReport {
             worksheet.addRow({
                 caseNumber: c.caseNumber,
                 reportedAt: moment(c.reportedAt).format('YYYY-MM-DD HH:mm'),
-                attendedAt: c.attendedAt ? moment(c.attendedAt).format('YYYY-MM-DD HH:mm') : 'N/A',
-                solvedAt: c.solvedAt ? moment(c.solvedAt).format('YYYY-MM-DD HH:mm') : 'N/A',
+                attendedAt: c.serviceData?.attendedAt ? moment(c.attendedAt).format('YYYY-MM-DD HH:mm') : 'N/A',
+                solvedAt: c.serviceData?.solvedAt ? moment(c.solvedAt).format('YYYY-MM-DD HH:mm') : 'N/A',
                 equipmentName: c.serviceData?.equipments?.[0]?.name || c.serviceData?.name || 'N/A',
                 plateNumber: c.serviceData?.equipments?.[0]?.inventoryNumber || c.serviceData?.numberInventory || 'N/A',
                 dependency: c.dependency || 'N/A',
@@ -71,8 +71,8 @@ export class CorrectiveReport {
                 solution: c.serviceData?.solution || 'N/A',
                 documentDelivered:
                     c.reportedBy?.signature?.trim() &&
-                        c.ratings?.effectiveness &&
-                        c.ratings?.satisfaction
+                        c.effectivenessRating.value &&
+                        c.satisfactionRating.value
                         ? 'Entregado'
                         : 'No entregado',
             });

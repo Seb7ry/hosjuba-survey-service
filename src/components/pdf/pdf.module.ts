@@ -9,6 +9,7 @@ import { CaseModule } from "../case/case.module";
 
 @Module({
     imports: [
+        CaseModule,
         HistoryModule,
         SessionModule,
         JwtModule.registerAsync({
