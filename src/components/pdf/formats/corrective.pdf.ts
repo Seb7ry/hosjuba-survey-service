@@ -1,15 +1,28 @@
-// src/pdf/formats/corrective.pdf.ts
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
 
+function formatDateTime(dateInput: string | Date | undefined): string {
+    if (!dateInput) return '';
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return '';
+
+    return new Intl.DateTimeFormat('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(date);
+}
+
+
 export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}): Promise<PDFDocument> {
-    // Validación inicial robusta
     if (!data || typeof data !== 'object') {
         data = {};
     }
 
-    const templatePath = path.join(__dirname, '..', '..', '..', 'assets', 'PA-GSI-GARI-R2.pdf');
+    const templatePath = path.join('src', 'assets', 'PA-GSI-GARI-R2.pdf');
     if (!fs.existsSync(templatePath)) throw new Error(`No se encontró la plantilla: ${templatePath}`);
 
     const templateBytes = fs.readFileSync(templatePath);
@@ -24,28 +37,76 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
         text: any,
         x: number,
         y: number,
-        size: number = 10 ,
+        fontSize: number = 8,
         bold: boolean = false,
         color = rgb(0, 0, 0),
         boxWidth: number = 200,
-        debug: boolean = true
+        boxHeight: number = fontSize + 4,
+        debug: boolean = false
     ) => {
         const displayText = text?.toString() || '';
-        page.drawText(displayText, {
-            x,
-            y,
-            size,
-            font: bold ? fontBold : font,
-            color,
-            maxWidth: boxWidth
+        const fontToUse = bold ? fontBold : font;
+
+        let adjustedFontSize = fontSize;
+        let lines: string[] = [];
+
+        const wrapText = (text: string, width: number, size: number): string[] => {
+            const words = text.split(' ');
+            const lines: string[] = [];
+            let currentLine = words[0] || '';
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const testLine = currentLine + ' ' + word;
+                const testWidth = fontToUse.widthOfTextAtSize(testLine, size);
+
+                if (testWidth <= width) {
+                    currentLine = testLine;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        };
+
+        let fits = false;
+        while (!fits && adjustedFontSize >= 4) {
+            lines = wrapText(displayText, boxWidth, adjustedFontSize);
+            const lineHeight = fontToUse.heightAtSize(adjustedFontSize) * 1.2;
+            const totalHeight = lines.length * lineHeight;
+
+            if (totalHeight <= boxHeight) {
+                fits = true;
+            } else {
+                adjustedFontSize -= 0.5;
+            }
+        }
+
+        const lineHeight = fontToUse.heightAtSize(adjustedFontSize) * 1.2;
+        const startY = y + boxHeight - lineHeight;
+
+        lines.forEach((line, index) => {
+            const lineY = startY - (index * lineHeight);
+            if (lineY >= y) {
+                page.drawText(line, {
+                    x,
+                    y: lineY,
+                    size: adjustedFontSize,
+                    font: fontToUse,
+                    color,
+                    maxWidth: boxWidth
+                });
+            }
         });
 
         if (debug) {
             page.drawRectangle({
-                x: x - 2,
-                y: y - 2,
+                x,
+                y,
                 width: boxWidth,
-                height: size + 4,
+                height: boxHeight,
                 borderColor: rgb(1, 0, 0),
                 borderWidth: 0.5
             });
@@ -59,102 +120,114 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
             y,
             size: 12,
             font: fontBold,
-            color: rgb(0, 0.2, 0.6)
+            color: rgb(0, 0, 0)
         });
-        page.drawRectangle({
-            x: x - 3,
-            y: y - 3,
-            width: 14,
-            height: 14,
-            borderColor: rgb(1, 0, 0),
-            borderWidth: 0.5
-        });
+        /*
+            if (debug) {
+                page.drawRectangle({
+                    x: x - 3,
+                    y: y - 3,
+                    width: 14,
+                    height: 14,
+                    borderColor: rgb(1, 0, 0),
+                    borderWidth: 0.5
+                });
+            }
+            */
     };
 
-    // === 1. DATOS DEL CASO ===
-    draw(data?.caseNumber, 120, 693, 8, false, rgb(0, 0, 0), 50); 
-    draw(data?.reportedAt, 278, 693, 8, false, rgb(0, 0, 0), 53);
-    draw(data?.serviceData?.attendedAt, 395, 693, 8, false, rgb(0, 0, 0), 50); 
-    draw(data?.serviceData?.solvedAt, 517, 693, 8, false, rgb(0, 0, 0), 50); 
+    draw(data?.caseNumber, 123, 693, 8, false, rgb(0, 0, 0), 43, 10);
+    draw(formatDateTime(data?.reportedAt), 276, 690, 8, false, rgb(0, 0, 0), 53, 12);
+    draw(formatDateTime(data?.serviceData?.attendedAt), 393, 690, 8, false, rgb(0, 0, 0), 50, 12);
+    draw(formatDateTime(data?.serviceData?.solvedAt), 515, 690, 8, false, rgb(0, 0, 0), 50, 12);
 
-    // === 2. SERVICIO ===
-    draw(data?.serviceData?.description, 25, 590, 65, false, rgb(0, 0, 0), 250); 
-    draw(data?.serviceType === 'Solicitud' ? 'X' : '', 288, 639, 12, true, rgb(0, 0, 0), 43); 
-    draw(data?.serviceType === 'Incidente' ? 'X' : '', 288, 616, 12, true, rgb(0, 0, 0), 43); 
-    draw(data?.serviceType === 'Concepto Técnico' ? 'X' : '', 288, 593, 12, true, rgb(0, 0, 0), 43); 
-    draw(data?.dependency, 431, 648, 15, false, rgb(0, 0, 0), 160)
-    draw(data?.reportedBy?.name, 431, 615, 15, false, rgb(0, 0, 0), 160); 
-    draw(data?.reportedBy?.position, 431, 588, 15, false, rgb(0, 0, 0), 160); 
+    draw(data?.serviceData?.description, 25, 590, 8, false, rgb(0, 0, 0), 250, 65);
+    draw(data?.serviceType === 'Solicitud' ? 'X' : '', 303, 639, 12, false, rgb(0, 0, 0), 7, 12);
+    draw(data?.serviceType === 'Incidente' ? 'X' : '', 303, 616, 12, false, rgb(0, 0, 0), 7, 12);
+    draw(data?.serviceType === 'Concepto Técnico' ? 'X' : '', 303, 593, 12, false, rgb(0, 0, 0), 7, 12);
+    draw(data?.dependency, 428, 648, 8, false, rgb(0, 0, 0), 160, 12);
+    draw(data?.reportedBy?.name, 428, 615, 8, false, rgb(0, 0, 0), 160, 12);
+    draw(data?.reportedBy?.position, 428, 588, 8, false, rgb(0, 0, 0), 160, 12);
 
-    // === 3. EQUIPOS ===
-    const equipmentYStart = 648;
-    const equipmentRowHeight = 20;
-
-    const equipmentList = data?.equipment || [];
+    const equipmentYStart = 544;
+    const equipmentRowHeight = 14;
+    const equipmentList = data?.serviceData?.equipments || [];
     equipmentList.forEach((item: any, index: number) => {
         const y = equipmentYStart - (index * equipmentRowHeight);
-        draw((index + 1).toString(), 431, y, 10, false, rgb(0, 0, 0), 20); // Ítem (ancho mínimo)
-        draw(item?.equipment, 431, y, 10, false, rgb(0, 0, 0), 120); // Equipo
-        draw(item?.brand, 431, y, 10, false, rgb(0, 0, 0), 100); // Marca
-        draw(item?.model, 431, y, 10, false, rgb(0, 0, 0), 100); // Modelo
-        draw(item?.serial, 431, y, 10, false, rgb(0, 0, 0), 120); // Serial
-        draw(item?.conventions, 431, y, 10, false, rgb(0, 0, 0), 50); // Convenciones
+        draw(item?.name, 64, y, 8, false, rgb(0, 0, 0), 73, 12);
+        draw(item?.brand, 143, y, 8, false, rgb(0, 0, 0), 106, 12);
+        draw(item?.model, 255, y, 8, false, rgb(0, 0, 0), 151, 12);
+        const serial = item?.serial?.toString().trim();
+        const inventory = item?.inventoryNumber?.toString().trim();
+        const serialInventory = serial && inventory
+            ? `${serial} / ${inventory}`
+            : serial || inventory || 'N/A';
+        draw(serialInventory, 412, y, 8, false, rgb(0, 0, 0), 117, 12);
+
+        const conventionMap: Record<string, string> = {
+            "Se encuentra en estado de obsolecencia tecnológica para la entidad.": "A",
+            "Se encuentra en estado inservible, para dar de baja.": "B",
+            "Se encuentra en estado funcionalmente bueno, se sugiere la permanencia del mismo.": "C",
+            "Se encuentra averiado debe ser reparado y/o actualizado.": "D"
+        };
+        const conventionKey = conventionMap[item?.convention?.toString().trim()] || "N/A";
+        draw(conventionKey, 559, y, 8, false, rgb(0, 0, 0), 5, 12);
+
     });
 
-    // === 4. CONVENCIONES ===
+    draw(data?.serviceData?.diagnosis, 120, 390, 10, false, rgb(0, 0, 0), 469, 40);
+    draw(data?.serviceData?.solution, 120, 344, 10, false, rgb(0, 0, 0), 469, 40);
+    draw(data?.observations, 120, 299, 10, false, rgb(0, 0, 0), 469, 40);
 
-    // === 5. DIAGNÓSTICO, SOLUCIÓN Y OBSERVACIONES ===
-    draw(data?.diagnosis, 50, 380, 10, false, rgb(0, 0, 0), 500); // Diagnóstico (ancho máximo)
-    draw(data?.solution, 50, 300, 10, false, rgb(0, 0, 0), 500); // Solución (ancho máximo)
-
-    // Observaciones con ajuste de ancho y multilínea
-    const observations = data?.observations || '';
-    const obsLines = observations.match(/.{1,120}/g) ?? [''];
-    obsLines.forEach((line: string, i: number) => {
-        draw(line, 50, 220 - i * 16, 9, false, rgb(0, 0, 0), 500, false); // Sin debug para observaciones
-    });
-
-    // === 6. MATERIALES ===
-    const materialsYStart = 180;
-    const materialsRowHeight = 20;
-
-    const materialsList = data?.materials || [];
+    const materialsYStart = 264;
+    const materialsRowHeight = 11;
+    const columnSpacing = 275;
+    const materialsList = data?.serviceData?.materials || [];
     materialsList.forEach((material: any, index: number) => {
-        const y = materialsYStart - (index * materialsRowHeight);
-        draw(material?.quantity, 50, y, 10, false, rgb(0, 0, 0), 40); // Cantidad (ancho reducido)
-        draw(material?.description, 100, y, 10, false, rgb(0, 0, 0), 400); // Descripción (ancho amplio)
+        const column = index < 5 ? 0 : 1;
+        const rowIndex = index % 5;
+        const xOffset = column * columnSpacing;
+        const y = materialsYStart - (rowIndex * materialsRowHeight);
+        draw(material?.quantity, 35 + xOffset, y, 8, false, rgb(0, 0, 0), 17, 12);
+        draw(material?.description, 65 + xOffset, y, 8, false, rgb(0, 0, 0), 234, 12);
     });
 
-    // === 7. FIRMAS ===
-    draw(data?.technician?.name, 100, 100, 10, true, rgb(0, 0, 0), 150); // Nombre técnico (negrita)
-    draw(data?.technician?.position, 100, 85, 10, false, rgb(0, 0, 0), 150); // Cargo técnico
-    draw(data?.user?.name, 350, 100, 10, true, rgb(0, 0, 0), 150); // Nombre usuario (negrita)
-    draw(data?.user?.position, 350, 85, 10, false, rgb(0, 0, 0), 150); // Cargo usuario
-
-    // === 8. CALIFICACIONES ===
-    const ratingY = 60;
-
-    // Calificación de resolución (1-4)
-    [1, 2, 3, 4].forEach((rating) => {
-        drawCheck(data?.resolutionRating === rating, 50 + (rating * 30), ratingY);
-    });
-
-    // Calificación de satisfacción (1-4)
-    [1, 2, 3, 4].forEach((rating) => {
-        drawCheck(data?.satisfactionRating === rating, 250 + (rating * 30), ratingY);
-    });
-
-    // === FIRMA DEL TÉCNICO (opcional) ===
-    if (data?.technician?.signature) {
+    if (data?.assignedTechnician?.signature) {
         try {
-            const imgBase64 = data.technician.signature.split(',')[1];
+            const imgBase64 = data.assignedTechnician.signature.split(',')[1];
             const imageBytes = Uint8Array.from(atob(imgBase64), c => c.charCodeAt(0));
             const image = await pdfDoc.embedPng(imageBytes);
-            page.drawImage(image, { x: 150, y: 120, width: 130, height: 50 });
+            page.drawImage(image, { x: 120, y: 170, width: 104, height: 40 });
         } catch (error) {
             console.error('Error al procesar firma:', error);
         }
     }
+    draw(data?.assignedTechnician?.name, 65, 159, 7, false, rgb(0, 0, 0), 150, 10);
+    draw(data?.assignedTechnician?.position, 65, 143, 7, false, rgb(0, 0, 0), 150, 10);
+
+    if (data?.reportedBy?.signature) {
+        try {
+            const imgBase64 = data.reportedBy.signature.split(',')[1];
+            const imageBytes = Uint8Array.from(atob(imgBase64), c => c.charCodeAt(0));
+            const image = await pdfDoc.embedPng(imageBytes);
+            page.drawImage(image, { x: 420, y: 170, width: 104, height: 40 });
+        } catch (error) {
+            console.error('Error al procesar firma:', error);
+        }
+    }
+    draw(data?.reportedBy?.name, 378, 159, 7, false, rgb(0, 0, 0), 150, 10);
+    draw(data?.reportedBy?.position, 378, 143, 7, false, rgb(0, 0, 0), 150, 10);
+
+    const ratingPositions = [132, 265, 389, 510];
+    const effectivenessY = 111;
+    [1, 2, 3, 4].forEach((rating, index) => {
+        drawCheck(data?.effectivenessRating?.value === rating, ratingPositions[index], effectivenessY);
+    });
+
+    const satisfactionY = 77;
+    [1, 2, 3, 4].forEach((rating, index) => {
+        drawCheck(data?.satisfactionRating?.value === rating, ratingPositions[index], satisfactionY);
+    });
 
     return pdfDoc;
 }

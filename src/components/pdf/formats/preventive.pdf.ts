@@ -2,8 +2,24 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any): Promise<PDFDocument> {
-    const templatePath = path.join(__dirname, '..', '..', '..', 'assets', 'PA-GSI-GARI-R2.pdf');
+function splitDateParts(dateInput: string | Date | undefined): { day: string, month: string, year: string } {
+    if (!dateInput) return { day: '', month: '', year: '' };
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return { day: '', month: '', year: '' };
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString();
+
+    return { day, month, year };
+}
+
+export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any = {}): Promise<PDFDocument> {
+    if (!data || typeof data !== 'object') {
+        data = {};
+    }
+
+    const templatePath = path.join('src', 'assets', 'PA-GSI-GARI-R1.pdf');
     if (!fs.existsSync(templatePath)) throw new Error(`No se encontró la plantilla: ${templatePath}`);
 
     const templateBytes = fs.readFileSync(templatePath);
@@ -11,41 +27,133 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any): Pr
     const [templatePage] = await pdfDoc.copyPages(templateDoc, [0]);
     const page = pdfDoc.addPage(templatePage);
 
-    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const draw = (text: string, x: number, y: number, size = 14, color = rgb(0, 0, 0)) => {
-        page.drawText(text || '<< vacío >>', { x, y, size, font, color });
-        // Debug box
-        page.drawRectangle({ x: x - 2, y: y - 2, width: 200, height: size + 4, borderColor: rgb(1, 0, 0), borderWidth: 0.5 });
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const draw = (
+        text: any,
+        x: number,
+        y: number,
+        fontSize: number = 8,
+        bold: boolean = false,
+        color = rgb(0, 0, 0),
+        boxWidth: number = 200,
+        boxHeight: number = fontSize + 4,
+        debug: boolean = false
+    ) => {
+        const displayText = text?.toString() || '';
+        const fontToUse = bold ? fontBold : font;
+
+        let adjustedFontSize = fontSize;
+        let lines: string[] = [];
+
+        const wrapText = (text: string, width: number, size: number): string[] => {
+            const words = text.split(' ');
+            const lines: string[] = [];
+            let currentLine = words[0] || '';
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const testLine = currentLine + ' ' + word;
+                const testWidth = fontToUse.widthOfTextAtSize(testLine, size);
+
+                if (testWidth <= width) {
+                    currentLine = testLine;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        };
+
+        let fits = false;
+        while (!fits && adjustedFontSize >= 4) {
+            lines = wrapText(displayText, boxWidth, adjustedFontSize);
+            const lineHeight = fontToUse.heightAtSize(adjustedFontSize) * 1.2;
+            const totalHeight = lines.length * lineHeight;
+
+            if (totalHeight <= boxHeight) {
+                fits = true;
+            } else {
+                adjustedFontSize -= 0.5;
+            }
+        }
+
+        const lineHeight = fontToUse.heightAtSize(adjustedFontSize) * 1.2;
+        const startY = y + boxHeight - lineHeight;
+
+        lines.forEach((line, index) => {
+            const lineY = startY - (index * lineHeight);
+            if (lineY >= y) {
+                page.drawText(line, {
+                    x,
+                    y: lineY,
+                    size: adjustedFontSize,
+                    font: fontToUse,
+                    color,
+                    maxWidth: boxWidth
+                });
+            }
+        });
+
+        if (debug) {
+            page.drawRectangle({
+                x,
+                y,
+                width: boxWidth,
+                height: boxHeight,
+                borderColor: rgb(1, 0, 0),
+                borderWidth: 0.5
+            });
+        }
     };
 
-    const drawCheck = (value: boolean, x: number, y: number) => {
-        page.drawText(value ? 'X' : '-', { x, y, size: 14, font, color: rgb(0, 0.2, 0.6) });
-        page.drawRectangle({ x: x - 3, y: y - 3, width: 14, height: 14, borderColor: rgb(1, 0, 0), borderWidth: 0.5 });
+    const drawCheck = (value: any, x: number, y: number, debug: boolean = false, boxWidth: number = 10, boxHeight: number = 10) => {
+        const isChecked = Boolean(value);
+        page.drawText(isChecked ? 'X' : '', {
+            x,
+            y,
+            size: 12,
+            font: fontBold,
+            color: rgb(0, 0, 0)
+        });
+        if (debug) {
+            page.drawRectangle({
+                x,
+                y,
+                width: boxWidth,
+                height: boxHeight,
+                borderColor: rgb(1, 0, 0),
+                borderWidth: 0.5
+            });
+        }
     };
 
-    const drawPoint = (x: number, y: number) => {
-        page.drawCircle({ x, y, size: 1, color: rgb(1, 0, 0) });
-    };
 
-    // === CAMPOS DE TEXTO ===
-    draw(data.caseNumber, 200, 1500);                   // Número de caso
-    draw(new Date(data.reportedAt).toLocaleDateString(), 950, 1500); // Fecha
+    // === INFORMACIÓN BÁSICA ===
+    draw(data?.caseNumber, 102, 698, 8, false, rgb(0, 0, 0), 46, 8);
 
-    draw(data.serviceData?.numberInventory || '', 200, 1430);
-    draw(data.serviceData?.type || '', 150, 1400);
-    draw(data.serviceData?.brand || '', 400, 1400);
-    draw(data.serviceData?.model || '', 700, 1400);
-    draw(data.serviceData?.serial || '', 950, 1400);
+    const { day, month, year } = splitDateParts(data?.reportedAt);
+    draw(day, 325, 698, 8, false, rgb(0, 0, 0), 45, 8);
+    draw(month, 390, 698, 8, false, rgb(0, 0, 0), 32, 8);
+    draw(year, 439, 698, 8, false, rgb(0, 0, 0), 38, 8);
 
-    draw(data.reportedBy?.name || '', 150, 130); // Nombre usuario
-    draw(data.reportedBy?.position || '', 550, 130); // Cargo usuario
-    draw(data.assignedTechnician?.name || '', 150, 90); // Técnico
-    draw(data.assignedTechnician?.position || '', 550, 90);
+    // === INFORMACIÓN DEL EQUIPO ===
+    draw(data?.serviceData?.type || '', 97, 669, 10, false, rgb(0, 0, 0), 220, 8);
+    draw(data?.serviceData?.brand || '', 97, 658, 10, false, rgb(0, 0, 0), 220, 8);
+    draw(data?.serviceData?.model || '', 97, 647, 10, false, rgb(0, 0, 0), 220, 8);
+    draw(data?.serviceData?.serial || '', 97, 636, 10, false, rgb(0, 0, 0), 220, 8);
+    draw(data?.serviceData?.numberInventory || '', 97, 625, 10, false, rgb(0, 0, 0), 220, 8);
+
+    draw(data?.dependency || '', 402, 669, 10, false, rgb(0, 0, 0), 184, 8);
+    draw(data?.serviceData?.location || '', 402, 658, 10, false, rgb(0, 0, 0), 184, 8);
+    draw(data?.reportedBy?.name || '', 402, 642, 10, false, rgb(0, 0, 0), 184, 8);
+    draw(data?.reportedBy?.position || '', 402, 625, 10, false, rgb(0, 0, 0), 184, 8);
 
     // === OBSERVACIONES ===
-    const obs = data.observations || '';
-    const obsLines = obs.match(/.{1,100}/g) ?? [''];
-    obsLines.forEach((line, i) => draw(line, 100, 260 - i * 16, 12));
+    draw(data?.observations || '', 26, 183, 10, false, rgb(0, 0, 0), 560, 33);
 
     // === CHECKBOXES ===
     const baseY = 1340;
@@ -100,22 +208,38 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any): Pr
         inventarioDeSoftware: [660, baseY - spacing * 20],
     };
 
-    for (const [field, [x, y]] of Object.entries(coordsMap)) {
-        const val = data.serviceData?.hardware?.[field]
-            ?? data.serviceData?.software?.[field]
-            ?? data.serviceData?.printers?.[field]
-            ?? data.serviceData?.phones?.[field]
-            ?? data.serviceData?.scanners?.[field];
-        drawCheck(!!val, x, y);
+    if (data?.assignedTechnician?.signature) {
+        try {
+            const imgBase64 = data.assignedTechnician.signature.split(',')[1];
+            const imageBytes = Uint8Array.from(atob(imgBase64), c => c.charCodeAt(0));
+            const image = await pdfDoc.embedPng(imageBytes);
+            page.drawImage(image, { x: 150, y: 130, width: 104, height: 40 });
+        } catch (error) {
+            console.error('Error al procesar firma:', error);
+        }
     }
+    draw(data?.assignedTechnician?.name || '', 100, 114, 10, false, rgb(0, 0, 0), 199, 8);
+    draw(data?.assignedTechnician?.position || '', 100, 96, 10, false, rgb(0, 0, 0), 199, 8);
 
-    // === FIRMA DEL TÉCNICO ===
-    if (data.assignedTechnician?.signature) {
-        const imgBase64 = data.assignedTechnician.signature.split(',')[1];
-        const imageBytes = Uint8Array.from(atob(imgBase64), c => c.charCodeAt(0));
-        const image = await pdfDoc.embedPng(imageBytes);
-        page.drawImage(image, { x: 150, y: 340, width: 130, height: 50 });
+    if (data?.reportedBy?.signature) {
+        try {
+            const imgBase64 = data.reportedBy.signature.split(',')[1];
+            const imageBytes = Uint8Array.from(atob(imgBase64), c => c.charCodeAt(0));
+            const image = await pdfDoc.embedPng(imageBytes);
+            page.drawImage(image, { x: 420, y: 130, width: 104, height: 40 });
+        } catch (error) {
+            console.error('Error al procesar firma:', error);
+        }
     }
+    draw(data?.reportedBy?.name || '', 369, 114, 10, false, rgb(0, 0, 0), 199, 8);
+    draw(data?.reportedBy?.position || '', 369, 96, 10, false, rgb(0, 0, 0), 199, 8);
+
+
+    const ratingPositions = [109, 230, 379, 494];
+    const effectivenessY = 59;
+    [1, 2, 3, 4].forEach((rating, index) => {
+        drawCheck(data?.effectivenessRating?.value === rating, ratingPositions[index], effectivenessY);
+    });
 
     return pdfDoc;
 }
