@@ -39,7 +39,8 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any = {}
         color = rgb(0, 0, 0),
         boxWidth: number = 200,
         boxHeight: number = fontSize + 4,
-        debug: boolean = false
+        align: 'left' | 'center' = 'left',
+        debug: boolean = false,
     ) => {
         const displayText = text?.toString() || '';
         const fontToUse = bold ? fontBold : font;
@@ -87,8 +88,13 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any = {}
         lines.forEach((line, index) => {
             const lineY = startY - (index * lineHeight);
             if (lineY >= y) {
+                let textX = x;
+                if (align === 'center') {
+                    const textWidth = fontToUse.widthOfTextAtSize(line, adjustedFontSize);
+                    textX = x + (boxWidth - textWidth) / 2;
+                }
                 page.drawText(line, {
-                    x,
+                    x: textX,
                     y: lineY,
                     size: adjustedFontSize,
                     font: fontToUse,
@@ -131,82 +137,134 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any = {}
         }
     };
 
-
-    // === INFORMACIÓN BÁSICA ===
-    draw(data?.caseNumber, 102, 698, 8, false, rgb(0, 0, 0), 46, 8);
+    draw(data?.caseNumber, 96, 698, 8, false, rgb(0, 0, 0), 48, 8, 'center');
 
     const { day, month, year } = splitDateParts(data?.reportedAt);
-    draw(day, 325, 698, 8, false, rgb(0, 0, 0), 45, 8);
-    draw(month, 390, 698, 8, false, rgb(0, 0, 0), 32, 8);
-    draw(year, 439, 698, 8, false, rgb(0, 0, 0), 38, 8);
+    draw(day, 320, 698, 8, false, rgb(0, 0, 0), 45, 8, 'center');
+    draw(month, 385, 698, 8, false, rgb(0, 0, 0), 32, 8, 'center');
+    draw(year, 433, 698, 8, false, rgb(0, 0, 0), 38, 8, 'center');
 
-    // === INFORMACIÓN DEL EQUIPO ===
-    draw(data?.serviceData?.type || '', 97, 669, 10, false, rgb(0, 0, 0), 220, 8);
-    draw(data?.serviceData?.brand || '', 97, 658, 10, false, rgb(0, 0, 0), 220, 8);
-    draw(data?.serviceData?.model || '', 97, 647, 10, false, rgb(0, 0, 0), 220, 8);
-    draw(data?.serviceData?.serial || '', 97, 636, 10, false, rgb(0, 0, 0), 220, 8);
-    draw(data?.serviceData?.numberInventory || '', 97, 625, 10, false, rgb(0, 0, 0), 220, 8);
+    draw(data?.serviceData?.type || '', 97, 669, 10, false, rgb(0, 0, 0), 220, 8, 'center');
+    draw(data?.serviceData?.brand || '', 97, 658, 10, false, rgb(0, 0, 0), 220, 8, 'center');
+    draw(data?.serviceData?.model || '', 97, 647, 10, false, rgb(0, 0, 0), 220, 8, 'center');
+    draw(data?.serviceData?.serial || '', 97, 636, 10, false, rgb(0, 0, 0), 220, 8, 'center');
+    draw(data?.serviceData?.numberInventory || '', 97, 625, 10, false, rgb(0, 0, 0), 220, 8, 'center');
 
-    draw(data?.dependency || '', 402, 669, 10, false, rgb(0, 0, 0), 184, 8);
-    draw(data?.serviceData?.location || '', 402, 658, 10, false, rgb(0, 0, 0), 184, 8);
-    draw(data?.reportedBy?.name || '', 402, 642, 10, false, rgb(0, 0, 0), 184, 8);
-    draw(data?.reportedBy?.position || '', 402, 625, 10, false, rgb(0, 0, 0), 184, 8);
+    draw(data?.dependency || '', 402, 669, 10, false, rgb(0, 0, 0), 184, 8, 'center');
+    draw(data?.serviceData?.location || '', 402, 658, 10, false, rgb(0, 0, 0), 184, 8, 'center');
+    draw(data?.reportedBy?.name || '', 402, 642, 10, false, rgb(0, 0, 0), 184, 8, 'center');
+    draw(data?.reportedBy?.position || '', 402, 625, 10, false, rgb(0, 0, 0), 184, 8, 'center');
 
-    // === OBSERVACIONES ===
+
     draw(data?.observations || '', 26, 183, 10, false, rgb(0, 0, 0), 560, 33);
 
-    // === CHECKBOXES ===
-    const baseY = 1340;
-    const spacing = 22;
+    function drawSectionChecks(
+        dataSection: any,
+        items: string[],
+        xNA: number,
+        xYes: number,
+        xNo: number,
+        yStart: number,
+        yStep: number
+    ) {
+        let currentY = yStart;
+        for (const item of items) {
+            const entry = dataSection?.[item];
 
-    const coordsMap: Record<string, [number, number]> = {
-        // HARDWARE (izquierda)
-        limpiezaDeVentiladores: [70, baseY],
-        limpiezaUnidadesDeAlmacenamiento: [70, baseY - spacing],
-        limpiezaDeModulosDeMemoria: [70, baseY - spacing * 2],
-        limpiezaDeTarjetasYPlacaMadre: [70, baseY - spacing * 3],
-        limpiezaFuenteDePoder: [70, baseY - spacing * 4],
-        limpiezaExternaChasis: [70, baseY - spacing * 5],
-        reconexionYAjusteDeProcesador: [70, baseY - spacing * 6],
-        reconexionYAjusteDeModulosDeMemoriaRam: [70, baseY - spacing * 7],
-        reconexionYAjusteTarjetasDeExpansion: [70, baseY - spacing * 8],
-        reconexionYAjusteDeUnidadesDeAlmacenamiento: [70, baseY - spacing * 9],
-        reconexionYAjusteDeFuenteDePoder: [70, baseY - spacing * 10],
-        reconexionYAjusteDePuertosDeChasis: [70, baseY - spacing * 11],
-        reconexionYAjusteDeTeclado: [70, baseY - spacing * 12],
-        reconexionYAjusteDeMouse: [70, baseY - spacing * 13],
-        reconexionYAjusteDeMonitor: [70, baseY - spacing * 14],
-        reconexionYAjusteImpresora: [70, baseY - spacing * 15],
-        reconexionYAjusteDeEscaner: [70, baseY - spacing * 16],
-        reconexionYAjusteDeCableDePoder: [70, baseY - spacing * 17],
-        reconexionYAjusteDeClabeDeRed: [70, baseY - spacing * 18],
-        reconexionYAjusteDeAdaptadorDeCorriente: [70, baseY - spacing * 19],
-        verificacionDeFuncionamiento: [70, baseY - spacing * 20],
-        inventarioDeHardware: [70, baseY - spacing * 21],
+            drawCheck(false, xNA, currentY, false);
+            drawCheck(false, xYes, currentY, false);
+            drawCheck(false, xNo, currentY, false);
 
-        // SOFTWARE (derecha)
-        actualizacionOCambioDelSistemaOperativo: [660, baseY],
-        confirmarUsuarioYContrasenaAdministradorLocal: [660, baseY - spacing],
-        confirmarOAsignarContrasenaEstandar: [660, baseY - spacing * 2],
-        configuracionDeSegmentoDeRedYDnsDeConexionADominioEInternet: [660, baseY - spacing * 3],
-        identificacionDeUnidadesDeAlmacenamiento: [660, baseY - spacing * 4],
-        comprobacionYReparacionDeErroresDeDiscoDuro: [660, baseY - spacing * 5],
-        desfragmentacionDeDiscoDuro: [660, baseY - spacing * 6],
-        eliminacionDeArchivosTemporales: [660, baseY - spacing * 7],
-        actualizacionConfiguracionYSolucionesDeSeguridadInformaticaTraficoSeguro: [660, baseY - spacing * 8],
-        confirmarSeguridadDeWindowsBitlockerEnParticionesDeDisco: [660, baseY - spacing * 9],
-        confirmarInstalarYConfigurarServicioDeMensajeriaInterna: [660, baseY - spacing * 10],
-        confirmarInstalarServicioRemotoYHabilitarReglasEnElFirewall: [660, baseY - spacing * 11],
-        confirmarUsuarioDeDominioEnActiveDirectoryDeAcuerdoAlServicio: [660, baseY - spacing * 12],
-        confirmacionDeAplicacionesEquiposDeUsoAsistencial: [660, baseY - spacing * 13],
-        confirmacionDeAplicacionesEquiposDeUsoAdministrativo: [660, baseY - spacing * 14],
-        confirmacionDeUnidadDeAlmacenamientoDestinadaParaElUsuario: [660, baseY - spacing * 15],
-        instalarRecursosCompartidosImpresorasOEscaner: [660, baseY - spacing * 16],
-        configuracionServicioDeNubeYServiciosTecnologicos: [660, baseY - spacing * 17],
-        activacionPlanDeEnergia: [660, baseY - spacing * 18],
-        crearPuntoDeRestauracion: [660, baseY - spacing * 19],
-        inventarioDeSoftware: [660, baseY - spacing * 20],
-    };
+            if (entry?.enabled === false) {
+                drawCheck(true, xNA, currentY, false);
+            }
+
+            if (entry?.enabled !== false && entry?.value !== undefined) {
+                if (entry.value === true) {
+                    drawCheck(true, xYes, currentY, false);
+                } else if (entry.value === false) {
+                    drawCheck(true, xNo, currentY, false);
+                }
+            }
+
+            currentY += yStep;
+        }
+    }
+
+    const hardwareItems = [
+        'limpiezaDeVentiladores',
+        'limpiezaUnidadesDeAlmacenamiento',
+        'limpiezaDeModulosDeMemoria',
+        'limpiezaDeTarjetasYPlacaMadre',
+        'limpiezaFuenteDePoder',
+        'limpiezaExternaChasis',
+        'reconexionYAjusteDeProcesador',
+        'reconexionYAjusteDeModulosDeMemoriaRam',
+        'reconexionYAjusteTarjetasDeExpansion',
+        'reconexionYAjusteDeUnidadesDeAlmacenamiento',
+        'reconexionYAjusteDeFuenteDePoder',
+        'reconexionYAjusteDePuertosDeChasis',
+        'reconexionYAjusteDeTeclado',
+        'reconexionYAjusteDeMouse',
+        'reconexionYAjusteDeMonitor',
+        'reconexionYAjusteImpresora',
+        'reconexionYAjusteDeEscaner',
+        'reconexionYAjusteDeCableDePoder',
+        'reconexionYAjusteDeClabeDeRed',
+        'reconexionYAjusteDeAdaptadorDeCorriente',
+        'verificacionDeFuncionamiento',
+        'inventarioDeHardware',
+    ];
+    drawSectionChecks(data?.serviceData?.hardware, hardwareItems, 227, 247.5, 268.5, 582, -11.7);
+
+    const softwareItems = [
+        'actualizacionOCambioDelSistemaOperativo',
+        'confirmarUsuarioYContrasenaAdministradorLocal',
+        'confirmarOAsignarContrasenaEstandar',
+        'configuracionDeSegmentoDeRedYDnsDeConexionADominioEInternet',
+        'identificacionDeUnidadesDeAlmacenamiento',
+        'comprobacionYReparacionDeErroresDeDiscoDuro',
+        'desfragmentacionDeDiscoDuro',
+        'eliminacionDeArchivosTemporales',
+        'actualizacionConfiguracionYSolucionesDeSeguridadInformaticaTraficoSeguro',
+        'confirmarSeguridadDeWindowsBitlockerEnParticionesDeDisco',
+        'confirmarInstalarYConfigurarServicioDeMensajeriaInterna',
+        'confirmarInstalarServicioRemotoYHabilitarReglasEnElFirewall',
+        'confirmarUsuarioDeDominioEnActiveDirectoryDeAcuerdoAlServicio',
+        'confirmacionDeAplicacionesEquiposDeUsoAsistencial',
+        'confirmacionDeAplicacionesEquiposDeUsoAdministrativo',
+        'confirmacionDeUnidadDeAlmacenamientoDestinadaParaElUsuario',
+        'instalarRecursosCompartidosImpresorasOEscaner',
+        'configuracionServicioDeNubeYServiciosTecnologicos',
+        'activacionPlanDeEnergia',
+        'crearPuntoDeRestauracion',
+        'inventarioDeSoftware',
+    ];
+    drawSectionChecks(data?.serviceData?.software, softwareItems, 532, 555, 574.5, 582, -11.7);
+
+    const printerItems = [
+        'limpiezaInterna',
+        'lubricacionYAjusteSistemaEngranaje',
+        'limpiezaExterna',
+        'verificacionDeFuncionamiento',
+        'activacionModoBorradorYAhorroDeEnergia',
+    ];
+    drawSectionChecks(data?.serviceData?.printers, printerItems, 227, 247.5, 268.5, 300.5, -11.7);
+
+    const phoneItems = [
+        'verificacionYAjusteDeCablesDeConexion',
+        'verificacionDeFuncionamiento',
+        'verificacionDeDisponibilidadYFuncionamientoDeLaExtensionTelefonica',
+        'limpieza',
+    ];
+    drawSectionChecks(data?.serviceData?.phones, phoneItems, 532, 555, 574.5, 324, -11.7);
+
+    const scannerItems = [
+        'verificacionYAjusteDeCablesDeConexion',
+        'verificacionDeFuncionamiento',
+        'limpieza',
+    ];
+    drawSectionChecks(data?.serviceData?.scanners, scannerItems, 532, 555, 574.5, 265.2, -11.7);
 
     if (data?.assignedTechnician?.signature) {
         try {
@@ -218,8 +276,8 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any = {}
             console.error('Error al procesar firma:', error);
         }
     }
-    draw(data?.assignedTechnician?.name || '', 100, 114, 10, false, rgb(0, 0, 0), 199, 8);
-    draw(data?.assignedTechnician?.position || '', 100, 96, 10, false, rgb(0, 0, 0), 199, 8);
+    draw(data?.assignedTechnician?.name || '', 97, 114, 10, false, rgb(0, 0, 0), 185, 8, 'center');
+    draw(data?.assignedTechnician?.position || '', 97, 96, 10, false, rgb(0, 0, 0), 185, 8, 'center');
 
     if (data?.reportedBy?.signature) {
         try {
@@ -231,9 +289,8 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any = {}
             console.error('Error al procesar firma:', error);
         }
     }
-    draw(data?.reportedBy?.name || '', 369, 114, 10, false, rgb(0, 0, 0), 199, 8);
-    draw(data?.reportedBy?.position || '', 369, 96, 10, false, rgb(0, 0, 0), 199, 8);
-
+    draw(data?.reportedBy?.name || '', 369, 114, 10, false, rgb(0, 0, 0), 199, 8, 'center');
+    draw(data?.reportedBy?.position || '', 369, 96, 10, false, rgb(0, 0, 0), 199, 8, 'center');
 
     const ratingPositions = [109, 230, 379, 494];
     const effectivenessY = 59;

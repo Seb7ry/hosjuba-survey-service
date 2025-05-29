@@ -42,7 +42,8 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
         color = rgb(0, 0, 0),
         boxWidth: number = 200,
         boxHeight: number = fontSize + 4,
-        debug: boolean = false
+        align: 'left' | 'center' = 'left',
+        debug: boolean = false,
     ) => {
         const displayText = text?.toString() || '';
         const fontToUse = bold ? fontBold : font;
@@ -90,8 +91,13 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
         lines.forEach((line, index) => {
             const lineY = startY - (index * lineHeight);
             if (lineY >= y) {
+                let textX = x;
+                if (align === 'center') {
+                    const textWidth = fontToUse.widthOfTextAtSize(line, adjustedFontSize);
+                    textX = x + (boxWidth - textWidth) / 2;
+                }
                 page.drawText(line, {
-                    x,
+                    x: textX,
                     y: lineY,
                     size: adjustedFontSize,
                     font: fontToUse,
@@ -113,7 +119,7 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
         }
     };
 
-    const drawCheck = (value: any, x: number, y: number) => {
+    const drawCheck = (value: any, x: number, y: number, debug: boolean = false, boxWidth: number = 10, boxHeight: number = 10) => {
         const isChecked = Boolean(value);
         page.drawText(isChecked ? 'X' : '', {
             x,
@@ -122,41 +128,41 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
             font: fontBold,
             color: rgb(0, 0, 0)
         });
-        /*
-            if (debug) {
-                page.drawRectangle({
-                    x: x - 3,
-                    y: y - 3,
-                    width: 14,
-                    height: 14,
-                    borderColor: rgb(1, 0, 0),
-                    borderWidth: 0.5
-                });
-            }
-            */
+
+        if (debug) {
+            page.drawRectangle({
+                x: x - 3,
+                y: y - 3,
+                width: 14,
+                height: 14,
+                borderColor: rgb(1, 0, 0),
+                borderWidth: 0.5
+            });
+        }
+
     };
 
-    draw(data?.caseNumber, 123, 693, 8, false, rgb(0, 0, 0), 43, 10);
-    draw(formatDateTime(data?.reportedAt), 276, 690, 8, false, rgb(0, 0, 0), 53, 12);
-    draw(formatDateTime(data?.serviceData?.attendedAt), 393, 690, 8, false, rgb(0, 0, 0), 50, 12);
-    draw(formatDateTime(data?.serviceData?.solvedAt), 515, 690, 8, false, rgb(0, 0, 0), 50, 12);
+    draw(data?.caseNumber, 118, 693, 8, false, rgb(0, 0, 0), 50, 10, 'center');
+    draw(formatDateTime(data?.reportedAt), 276, 690, 8, false, rgb(0, 0, 0), 53, 12, 'center');
+    draw(formatDateTime(data?.serviceData?.attendedAt), 393, 690, 8, false, rgb(0, 0, 0), 50, 12, 'center');
+    draw(formatDateTime(data?.serviceData?.solvedAt), 515, 690, 8, false, rgb(0, 0, 0), 50, 12, 'center');
 
     draw(data?.serviceData?.description, 25, 590, 8, false, rgb(0, 0, 0), 250, 65);
-    draw(data?.serviceType === 'Solicitud' ? 'X' : '', 303, 639, 12, false, rgb(0, 0, 0), 7, 12);
-    draw(data?.serviceType === 'Incidente' ? 'X' : '', 303, 616, 12, false, rgb(0, 0, 0), 7, 12);
-    draw(data?.serviceType === 'Concepto Técnico' ? 'X' : '', 303, 593, 12, false, rgb(0, 0, 0), 7, 12);
-    draw(data?.dependency, 428, 648, 8, false, rgb(0, 0, 0), 160, 12);
-    draw(data?.reportedBy?.name, 428, 615, 8, false, rgb(0, 0, 0), 160, 12);
-    draw(data?.reportedBy?.position, 428, 588, 8, false, rgb(0, 0, 0), 160, 12);
+    draw(data?.serviceType === 'Solicitud' ? 'X' : '', 305, 640, 12, false, rgb(0, 0, 0), 7, 12);
+    draw(data?.serviceType === 'Incidente' ? 'X' : '', 305, 617, 12, false, rgb(0, 0, 0), 7, 12);
+    draw(data?.serviceType === 'Concepto técnico' ? 'X' : '', 305, 595, 12, false, rgb(0, 0, 0), 7, 12);
+    draw(data?.dependency, 428, 648, 8, false, rgb(0, 0, 0), 160, 12, 'center');
+    draw(data?.reportedBy?.name, 428, 615, 8, false, rgb(0, 0, 0), 160, 12, 'center');
+    draw(data?.reportedBy?.position, 428, 588, 8, false, rgb(0, 0, 0), 160, 12, 'center');
 
     const equipmentYStart = 544;
     const equipmentRowHeight = 14;
     const equipmentList = data?.serviceData?.equipments || [];
     equipmentList.forEach((item: any, index: number) => {
         const y = equipmentYStart - (index * equipmentRowHeight);
-        draw(item?.name, 64, y, 8, false, rgb(0, 0, 0), 73, 12);
-        draw(item?.brand, 143, y, 8, false, rgb(0, 0, 0), 106, 12);
-        draw(item?.model, 255, y, 8, false, rgb(0, 0, 0), 151, 12);
+        draw(item?.name, 64, y, 8, false, rgb(0, 0, 0), 73, 12, 'center');
+        draw(item?.brand, 143, y, 8, false, rgb(0, 0, 0), 106, 12, 'center');
+        draw(item?.model, 255, y, 8, false, rgb(0, 0, 0), 151, 12, 'center');
         const serial = item?.serial?.toString().trim();
         const inventory = item?.inventoryNumber?.toString().trim();
         const serialInventory = serial && inventory
@@ -188,8 +194,8 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
         const rowIndex = index % 5;
         const xOffset = column * columnSpacing;
         const y = materialsYStart - (rowIndex * materialsRowHeight);
-        draw(material?.quantity, 35 + xOffset, y, 8, false, rgb(0, 0, 0), 17, 12);
-        draw(material?.description, 65 + xOffset, y, 8, false, rgb(0, 0, 0), 234, 12);
+        draw(material?.quantity, 33 + xOffset, y, 8, false, rgb(0, 0, 0), 17, 12, 'center');
+        draw(material?.description, 65 + xOffset, y, 8, false, rgb(0, 0, 0), 234, 12, 'center');
     });
 
     if (data?.assignedTechnician?.signature) {
@@ -202,8 +208,8 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
             console.error('Error al procesar firma:', error);
         }
     }
-    draw(data?.assignedTechnician?.name, 65, 159, 7, false, rgb(0, 0, 0), 150, 10);
-    draw(data?.assignedTechnician?.position, 65, 143, 7, false, rgb(0, 0, 0), 150, 10);
+    draw(data?.assignedTechnician?.name, 65, 159, 7, false, rgb(0, 0, 0), 207, 10, 'center');
+    draw(data?.assignedTechnician?.position, 65, 143, 7, false, rgb(0, 0, 0), 207, 10, 'center');
 
     if (data?.reportedBy?.signature) {
         try {
@@ -215,8 +221,8 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
             console.error('Error al procesar firma:', error);
         }
     }
-    draw(data?.reportedBy?.name, 378, 159, 7, false, rgb(0, 0, 0), 150, 10);
-    draw(data?.reportedBy?.position, 378, 143, 7, false, rgb(0, 0, 0), 150, 10);
+    draw(data?.reportedBy?.name, 378, 159, 7, false, rgb(0, 0, 0), 184, 10, 'center');
+    draw(data?.reportedBy?.position, 378, 143, 7, false, rgb(0, 0, 0), 184, 10, 'center');
 
     const ratingPositions = [132, 265, 389, 510];
     const effectivenessY = 111;
