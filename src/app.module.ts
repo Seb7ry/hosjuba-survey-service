@@ -17,6 +17,8 @@ import { EquipmentModule } from './components/equipment/equipment.module';
 import { EquipTypeModule } from './components/equip_type/equip_type.module';
 import { PdfModule } from './components/pdf/pdf.module';
 import { ReportModule } from './components/report/report.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -35,6 +37,10 @@ import { ReportModule } from './components/report/report.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'src/assets'),
+      serveRoot: '/assets', 
+    }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -45,4 +51,4 @@ import { ReportModule } from './components/report/report.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

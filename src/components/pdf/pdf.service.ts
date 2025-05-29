@@ -1,4 +1,3 @@
-// src/pdf/pdf.service.ts
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PDFDocument } from 'pdf-lib';
 import { drawPreventiveTemplate } from './formats/preventive.pdf';
