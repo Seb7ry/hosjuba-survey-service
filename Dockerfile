@@ -19,7 +19,7 @@ RUN npm install --only=production
 COPY --from=builder /app/dist ./dist
 COPY .env .env
 
-COPY credentials ./credentials
+COPY src/assets ./src/assets
 
 EXPOSE 3002
 

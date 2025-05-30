@@ -156,7 +156,7 @@ export async function drawPreventiveTemplate(pdfDoc: PDFDocument, data: any = {}
     draw(data?.reportedBy?.position || '', 402, 625, 10, false, rgb(0, 0, 0), 184, 8, 'center');
 
 
-    draw(data?.observations || '', 26, 183, 10, false, rgb(0, 0, 0), 560, 33);
+    draw(data?.observations || '', 26, 183, 8, false, rgb(0, 0, 0), 560, 33);
 
     function drawSectionChecks(
         dataSection: any,
