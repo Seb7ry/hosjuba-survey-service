@@ -181,9 +181,9 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
 
     });
 
-    draw(data?.serviceData?.diagnosis, 120, 390, 10, false, rgb(0, 0, 0), 469, 40);
-    draw(data?.serviceData?.solution, 120, 344, 10, false, rgb(0, 0, 0), 469, 40);
-    draw(data?.observations, 120, 299, 10, false, rgb(0, 0, 0), 469, 40);
+    draw(data?.serviceData?.diagnosis, 120, 390, 8, false, rgb(0, 0, 0), 469, 40);
+    draw(data?.serviceData?.solution, 120, 344, 8, false, rgb(0, 0, 0), 469, 40);
+    draw(data?.observations, 120, 299, 8, false, rgb(0, 0, 0), 469, 40);
 
     const materialsYStart = 264;
     const materialsRowHeight = 11;
