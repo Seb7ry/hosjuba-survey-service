@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Case, CaseDocument } from './case.model';
 import * as moment from 'moment-timezone';
 import * as dotenv from 'dotenv';
 import { DeletedCase, DeletedCaseDocument } from './deleted-case.model';
+import { CasePreventive, CasePreventiveDocument } from './case.preventive.model';
+import { CaseCorrective, CaseCorrectiveDocument } from './case.corrective.model';
+
 dotenv.config();
 
 interface SearchFilters {
@@ -23,29 +25,37 @@ interface SearchFilters {
     reportedByName?: string;
     technicianName?: string;
     equipmentName?: string;
+    caseType?: 'Preventivo' | 'Mantenimiento';
 }
 
 const INITIAL_CASE_NUMBER = parseInt(process.env.INITIAL_CASE_NUMBER || '2000', 10);
 
 @Injectable()
 export class CaseService {
-
     constructor(
-        @InjectModel(Case.name) private readonly caseModel: Model<CaseDocument>,
+        @InjectModel(CasePreventive.name) private readonly preventiveModel: Model<CasePreventiveDocument>,
+        @InjectModel(CaseCorrective.name) private readonly correctiveModel: Model<CaseCorrectiveDocument>,
         @InjectModel(DeletedCase.name) private readonly deletedCaseModel: Model<DeletedCaseDocument>,
     ) { }
 
-    async create(caseData: Partial<Case>): Promise<CaseDocument> {
+    private getModel(caseType: string): Model<CasePreventiveDocument | CaseCorrectiveDocument> {
+        return caseType === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
+    }
+
+    async create(caseData: Partial<CasePreventive | CaseCorrective>): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
         try {
+            const isPreventive = caseData.typeCase === 'Preventivo';
+            const caseType = isPreventive ? 'Preventivo' : 'Mantenimiento';
+            const model = isPreventive ? this.preventiveModel : this.correctiveModel;
             const currentYear = moment().tz('America/Bogota').year();
 
-            const lastCase = await this.caseModel.findOne({
+            const initialSeq = isPreventive
+                ? (process.env.INITIAL_CASE_PREVENTIVE_NUMBER ? parseInt(process.env.INITIAL_CASE_PREVENTIVE_NUMBER) : 1)
+                : (process.env.INITIAL_CASE_CORRECTIVE_NUMBER ? parseInt(process.env.INITIAL_CASE_CORRECTIVE_NUMBER) : 1);
+
+            const lastCase = await model.findOne({
                 caseNumber: new RegExp(`^${currentYear}`)
             }).sort({ caseNumber: -1 }).select('caseNumber');
-
-            const envInitial = process.env.INITIAL_CASE_NUMBER ?
-                parseInt(process.env.INITIAL_CASE_NUMBER) :
-                parseInt(`${currentYear}0001`);
 
             let nextNumber: number;
 
@@ -54,27 +64,23 @@ export class CaseService {
                 const lastCaseYear = parseInt(lastCase.caseNumber.toString().substring(0, 4));
 
                 if (lastCaseYear === currentYear) {
-                    nextNumber = lastCaseNumber + 1;
+                    const lastSeq = parseInt(lastCase.caseNumber.toString().substring(4));
+                    nextNumber = parseInt(`${currentYear}${(lastSeq + 1).toString().padStart(4, '0')}`);
                 } else {
-                    nextNumber = parseInt(`${currentYear}0001`);
-                }
-
-                if (envInitial > nextNumber) {
-                    nextNumber = envInitial;
+                    nextNumber = parseInt(`${currentYear}${initialSeq.toString().padStart(4, '0')}`);
                 }
             } else {
-                nextNumber = Math.max(
-                    envInitial,
-                    parseInt(`${currentYear}0001`)
-                );
+                nextNumber = parseInt(`${currentYear}${initialSeq.toString().padStart(4, '0')}`);
             }
 
-            const exists = await this.caseModel.findOne({ caseNumber: nextNumber });
+            const exists = await model.findOne({ caseNumber: nextNumber });
+
             if (exists) {
-                throw new Error(`Case number ${nextNumber} already exists`);
+                throw new Error(`El número de caso ${nextNumber} ya existe en ${caseType}`);
             }
 
-            const newCase = new this.caseModel({
+
+            const newCase = new model({
                 ...caseData,
                 caseNumber: nextNumber,
             });
@@ -85,16 +91,19 @@ export class CaseService {
         }
     }
 
-    async findByCaseNumber(caseNumber: string): Promise<CaseDocument> {
-        const caseFound = await this.caseModel.findOne({ caseNumber }).exec();
-        if (!caseFound) {
-            throw new NotFoundException(`Case withd number ${caseNumber} not found`);
-        }
-        return caseFound;
+    async findByCaseNumber(caseNumber: string): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
+        const preventiveCase = await this.preventiveModel.findOne({ caseNumber }).exec();
+        if (preventiveCase) return preventiveCase;
+
+        const correctiveCase = await this.correctiveModel.findOne({ caseNumber }).exec();
+        if (correctiveCase) return correctiveCase;
+
+        throw new NotFoundException(`Case with number ${caseNumber} not found`);
     }
 
-    async search(filters: SearchFilters): Promise<CaseDocument[]> {
+    async search(filters: SearchFilters): Promise<(CasePreventiveDocument | CaseCorrectiveDocument)[]> {
         const query: any = {};
+        const caseType = filters.caseType;
 
         if (filters.caseNumber) query.caseNumber = filters.caseNumber;
         if (filters.serviceType) query.serviceType = filters.serviceType;
@@ -143,44 +152,83 @@ export class CaseService {
             query['satisfactionRating.value'] = { $gte: filters.minSatisfaction };
         }
 
-        return this.caseModel.find(query).sort({ caseNumber: -1 }).lean().exec();
+        if (caseType) {
+            const model = caseType === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
+            return model.find(query).sort({ caseNumber: -1 }).lean().exec();
+        } else {
+            const preventiveCases = await this.preventiveModel.find(query).sort({ caseNumber: -1 }).lean().exec();
+            const correctiveCases = await this.correctiveModel.find(query).sort({ caseNumber: -1 }).lean().exec();
+
+            return [...preventiveCases, ...correctiveCases].sort((a, b) => {
+                const numA = parseInt(a.caseNumber?.toString() || '0');
+                const numB = parseInt(b.caseNumber?.toString() || '0');
+                return numB - numA;
+            });
+        }
     }
 
-    async update(id: string, updateData: Partial<Case>): Promise<CaseDocument> {
-        const caseSearch = await this.findByCaseNumber(id);
-        const updatedCase = await this.caseModel
-            .findByIdAndUpdate(caseSearch._id, updateData, { new: true })
-            .exec();
+    async update(caseNumber: string, updateData: Partial<CasePreventive | CaseCorrective>): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
+        const existingCase = await this.findByCaseNumber(caseNumber);
+        if (!existingCase) {
+            throw new NotFoundException(`Case with number ${caseNumber} not found`);
+        }
+
+        if (updateData.typeCase && updateData.typeCase !== existingCase.typeCase) {
+            throw new BadRequestException('Cannot change case type. Create a new case instead.');
+        }
+
+        const model = existingCase.typeCase === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
+
+        const updatedCase = await model.findOneAndUpdate(
+            { caseNumber }, 
+            updateData,
+            { new: true, runValidators: true } 
+        ).exec();
 
         if (!updatedCase) {
-            throw new NotFoundException(`Case with ID ${id} not found`);
+            throw new NotFoundException(`Case with number ${caseNumber} not found after update attempt`);
         }
+
         return updatedCase;
     }
 
-    async delete(id: string): Promise<void> {
-        const result = await this.findByCaseNumber(id);
-        if (!result) {
-            throw new NotFoundException(`Case with ID ${id} not found`);
+    async delete(caseNumber: string): Promise<{ message: string, deletedCase: any }> {
+        const existingCase = await this.findByCaseNumber(caseNumber);
+        if (!existingCase) {
+            throw new NotFoundException(`Case with number ${caseNumber} not found`);
         }
 
-        await this.deletedCaseModel.create({
-            originalCase: result.toObject(),
+        const model = existingCase.typeCase === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
+
+        const deletedCaseRecord = await this.deletedCaseModel.create({
+            originalCase: existingCase.toObject(),
             deletedAt: new Date(),
+            deletedBy: 'system', 
+            originalCollection: existingCase.typeCase === 'Preventivo' ? 'preventive' : 'corrective'
         });
 
-        await this.caseModel.findByIdAndDelete(result._id);
+        const deletionResult = await model.deleteOne({ caseNumber });
+
+        if (deletionResult.deletedCount === 0) {
+            await this.deletedCaseModel.deleteOne({ _id: deletedCaseRecord._id });
+            throw new Error('Failed to delete case');
+        }
+
+        return {
+            message: 'Case deleted successfully',
+            deletedCase: deletedCaseRecord
+        };
     }
 
     async getDeletedCases(caseNumber?: string): Promise<DeletedCaseDocument[] | DeletedCaseDocument | null> {
         if (caseNumber) {
-            return this.deletedCaseModel.findOne({ caseNumber }).lean().exec();
+            return this.deletedCaseModel.findOne({ 'originalCase.caseNumber': caseNumber }).lean().exec();
         }
 
         return this.deletedCaseModel.find().sort({ deletedAt: -1 }).lean().exec();
     }
 
-    async restoreDeletedCase(caseNumber: string): Promise<CaseDocument> {
+    async restoreDeletedCase(caseNumber: string): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
         const deleted = await this.deletedCaseModel.findOne({ 'originalCase.caseNumber': caseNumber }).lean();
 
         if (!deleted) {
@@ -191,7 +239,10 @@ export class CaseService {
         let restoredNumber = baseNumber + 'R';
         let suffix = 1;
 
-        while (await this.caseModel.findOne({ caseNumber: restoredNumber })) {
+        while (
+            await this.preventiveModel.findOne({ caseNumber: restoredNumber }) ||
+            await this.correctiveModel.findOne({ caseNumber: restoredNumber })
+        ) {
             restoredNumber = baseNumber + 'R' + suffix;
             suffix++;
         }
@@ -202,7 +253,8 @@ export class CaseService {
             _id: undefined
         };
 
-        const restoredCase = new this.caseModel(restoredData);
+        const model = deleted.originalCase.typeCase === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
+        const restoredCase = new model(restoredData);
         await restoredCase.save();
         await this.deletedCaseModel.deleteOne({ _id: deleted._id });
 

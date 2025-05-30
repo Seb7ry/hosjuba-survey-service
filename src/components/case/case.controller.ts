@@ -1,16 +1,36 @@
-import { Controller, Post, Get, Put, Delete, Param, Body, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Body, Query, BadRequestException, UseGuards, Req } from '@nestjs/common';
 import { CaseService } from './case.service';
-import { Case } from './case.model';
 import { AuthGuard } from '../authentication/auth.guard';
-import { DeletedCaseDocument } from './deleted-case.model';
+import { CasePreventive } from './case.preventive.model';
+import { CaseCorrective } from './case.corrective.model';
+import { Request } from 'express';
 
 @Controller('case')
 export class CaseController {
     constructor(private readonly caseService: CaseService) { }
 
+    @Post()
+    @UseGuards(AuthGuard)
+    async create(@Req() req: Request, @Body() caseData: Partial<CasePreventive | CaseCorrective>) {
+        try {
+            return await this.caseService.create(caseData);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
 
+    @Get(':caseNumber')
+    @UseGuards(AuthGuard)
+    async getCase(@Req() req: Request, @Param('caseNumber') caseNumber: string) {
+        try {
+            return await this.caseService.findByCaseNumber(caseNumber);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
 
     @Get()
+    @UseGuards(AuthGuard)
     async search(
         @Query('caseNumber') caseNumber?: string,
         @Query('serviceType') serviceType?: string,
@@ -26,66 +46,71 @@ export class CaseController {
         @Query('priority') priority?: string,
         @Query('reportedByName') reportedByName?: string,
         @Query('technicianName') technicianName?: string,
-        @Query('equipmentName') equipmentName?: string
+        @Query('equipmentName') equipmentName?: string,
+        @Query('caseType') caseType?: 'Preventivo' | 'Mantenimiento'
     ) {
-        const filters = {
-            caseNumber,
-            serviceType,
-            dependency,
-            reportedById,
-            technicianId,
-            status,
-            typeCase,
-            startDate: startDate ? new Date(startDate) : undefined,
-            endDate: endDate ? new Date(endDate) : undefined,
-            minEffectiveness,
-            minSatisfaction,
-            priority,
-            reportedByName,
-            technicianName,
-            equipmentName
-        };
-        return this.caseService.search(filters);
-    }
-
-    @Get('deleted')
-    async getDeleted(
-        @Query('caseNumber') caseNumber?: string,
-    ) {
-        return this.caseService.getDeletedCases(caseNumber);
-    }
-
-
-    @Get('restore/:caseNumber')
-    @UseGuards(AuthGuard)
-    async restore(@Param('caseNumber') caseNumber: string) {
-        return this.caseService.restoreDeletedCase(caseNumber);
-    }
-
-    @Get(':caseNumber')
-    @UseGuards(AuthGuard)
-    async getCase(@Param('caseNumber') caseNumber: string) {
-        return this.caseService.findByCaseNumber(caseNumber);
-    }
-
-    @Post()
-    @UseGuards(AuthGuard)
-    async create(@Body() caseData: Partial<Case>) {
-        if (!caseData.caseNumber || !caseData.serviceType || !caseData.dependency) {
-            throw new BadRequestException('Case number, service type and dependency are required');
+        try {
+            const filters = {
+                caseNumber,
+                serviceType,
+                dependency,
+                reportedById,
+                technicianId,
+                status,
+                typeCase,
+                startDate: startDate ? new Date(startDate) : undefined,
+                endDate: endDate ? new Date(endDate) : undefined,
+                minEffectiveness,
+                minSatisfaction,
+                priority,
+                reportedByName,
+                technicianName,
+                equipmentName,
+                caseType
+            };
+            return await this.caseService.search(filters);
+        } catch (error) {
+            throw new BadRequestException(error.message);
         }
-        return this.caseService.create(caseData);
     }
 
     @Put(':id')
     @UseGuards(AuthGuard)
-    async update(@Param('id') id: string, @Body() updateData: Partial<Case>) {
-        return this.caseService.update(id, updateData);
+    async update(@Param('id') id: string, @Body() updateData: Partial<CasePreventive | CaseCorrective>) {
+        try {
+            return await this.caseService.update(id, updateData);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
     }
 
     @Delete(':id')
     @UseGuards(AuthGuard)
     async delete(@Param('id') id: string) {
-        return this.caseService.delete(id);
+        try {
+            return await this.caseService.delete(id);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
+    @Get('deleted')
+    @UseGuards(AuthGuard)
+    async getDeletedCases(@Query('caseNumber') caseNumber?: string) {
+        try {
+            return await this.caseService.getDeletedCases(caseNumber);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
+    @Post('restore/:caseNumber')
+    @UseGuards(AuthGuard)
+    async restoreDeletedCase(@Param('caseNumber') caseNumber: string) {
+        try {
+            return await this.caseService.restoreDeletedCase(caseNumber);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
     }
 }

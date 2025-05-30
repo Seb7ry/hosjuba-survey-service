@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
 
-export type CaseDocument = Case & Document;
+export type CasePreventiveDocument = CasePreventive & Document;
 
 @Schema({ _id: false })
 export class Rating {
@@ -28,7 +28,7 @@ export class UserRef {
 }
 
 @Schema({ timestamps: true })
-export class Case {
+export class CasePreventive {
 
   @Prop()
   caseNumber: string;
@@ -78,26 +78,26 @@ export class Case {
   serviceData?: any;
 }
 
-export const CaseSchema = SchemaFactory.createForClass(Case);
+export const CasePreventiveSchema = SchemaFactory.createForClass(CasePreventive);
 
-CaseSchema.index({ caseNumber: 1 }, { unique: true });
-CaseSchema.index({ typeCase: 1 });
-CaseSchema.index({ serviceType: 1 });
-CaseSchema.index({ dependency: 1 });
-CaseSchema.index({ status: 1 });
-CaseSchema.index({ reportedAt: -1 });
-CaseSchema.index({ "reportedBy._id": 1 });
-CaseSchema.index({ "assignedTechnician._id": 1 });
-CaseSchema.index({
+CasePreventiveSchema.index({ caseNumber: 1 }, { unique: true });
+CasePreventiveSchema.index({ typeCase: 1 });
+CasePreventiveSchema.index({ serviceType: 1 });
+CasePreventiveSchema.index({ dependency: 1 });
+CasePreventiveSchema.index({ status: 1 });
+CasePreventiveSchema.index({ reportedAt: -1 });
+CasePreventiveSchema.index({ "reportedBy._id": 1 });
+CasePreventiveSchema.index({ "assignedTechnician._id": 1 });
+CasePreventiveSchema.index({
   reportedAt: 1,
   status: 1
 });
-CaseSchema.index({
+CasePreventiveSchema.index({
   dependency: 1,
   serviceType: 1,
   status: 1
 });
-CaseSchema.index({
+CasePreventiveSchema.index({
   "effectivenessRating.value": 1,
   "satisfactionRating.value": 1
 });

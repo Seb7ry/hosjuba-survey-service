@@ -81,6 +81,7 @@ export class ReportService {
     }
 
     async generateReport(
+        
         type: 'Mantenimiento' | 'Preventivo',
         interval: TimeInterval,
         res: Response,

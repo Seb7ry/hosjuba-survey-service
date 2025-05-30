@@ -168,7 +168,7 @@ export async function drawCorrectiveTemplate(pdfDoc: PDFDocument, data: any = {}
         const serialInventory = serial && inventory
             ? `${serial} / ${inventory}`
             : serial || inventory || 'N/A';
-        draw(serialInventory, 412, y, 8, false, rgb(0, 0, 0), 117, 12);
+        draw(serialInventory, 412, y, 8, false, rgb(0, 0, 0), 117, 12, 'center');
 
         const conventionMap: Record<string, string> = {
             "Se encuentra en estado de obsolecencia tecnológica para la entidad.": "A",

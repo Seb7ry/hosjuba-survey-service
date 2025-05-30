@@ -62,7 +62,6 @@ export class AuthService {
         await this.historyService.createHistory(
             `${req.body.username}`,
             'El usuario ha cerrado sesión.');
-
         return await this.sessionService.deleteSession(username);
     }
 }
