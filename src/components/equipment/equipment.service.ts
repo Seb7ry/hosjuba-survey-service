@@ -67,21 +67,40 @@ export class EquipmentService {
             };
 
             const equipment = new this.equipmentModel(equipmentData);
-            return await equipment.save();
+            await equipment.save();
+
+            await this.historyService.createHistory(
+                req.user?.username,
+                `Creó el equipo ${name} (${brand} ${model}), tipo ${type}, departamento ${department}` +
+                (serial ? `, serial ${serial}` : '') +
+                (numberInventory ? `, inventario ${numberInventory}` : '')
+            );
+
+            return equipment;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al crear el equipo.', e.message);
         }
     }
 
-    async updateEquipment(req: Request, name: string, updateData: Partial<Equipment>) {
+    async updateEquipment(req: Request, id: string, updateData: Partial<Equipment>) {
         try {
-            const equipment = await this.equipmentModel.findOne({ name }).exec();
+            const equipment = await this.equipmentModel.findById(id).exec();
             if (!equipment) {
                 throw new HttpException('El equipo no existe.', HttpStatus.NOT_FOUND);
             }
 
-            if (updateData.name && updateData.name !== name) {
+            const oldValues = {
+                name: equipment.name,
+                brand: equipment.brand,
+                model: equipment.model,
+                type: equipment.type,
+                department: equipment.department,
+                serial: equipment.serial,
+                numberInventory: equipment.numberInventory
+            };
+
+            if (updateData.name && updateData.name !== equipment.name) {
                 const existingEquipment = await this.equipmentModel.findOne({
                     name: updateData.name
                 }).exec();
@@ -99,26 +118,70 @@ export class EquipmentService {
                 }
             }
 
-            Object.assign(equipment, updateData);
-            return await equipment.save();
+            for (const key in updateData) {
+                if (updateData[key] !== undefined) {
+                    equipment[key] = updateData[key];
+                }
+            }
+
+            await equipment.save();
+
+            const changes: string[] = [];
+
+            if (updateData.name !== undefined && updateData.name !== oldValues.name) {
+                changes.push(`nombre de "${oldValues.name}" a "${updateData.name}"`);
+            }
+            if (updateData.brand !== undefined && updateData.brand !== oldValues.brand) {
+                changes.push(`marca de "${oldValues.brand}" a "${updateData.brand}"`);
+            }
+            if (updateData.model !== undefined && updateData.model !== oldValues.model) {
+                changes.push(`modelo de "${oldValues.model}" a "${updateData.model}"`);
+            }
+            if (updateData.type !== undefined && updateData.type !== oldValues.type) {
+                changes.push(`tipo de "${oldValues.type}" a "${updateData.type}"`);
+            }
+            if (updateData.department !== undefined && updateData.department !== oldValues.department) {
+                changes.push(`departamento de "${oldValues.department}" a "${updateData.department}"`);
+            }
+            if (updateData.serial !== undefined && updateData.serial !== oldValues.serial) {
+                changes.push(`serial de "${oldValues.serial}" a "${updateData.serial}"`);
+            }
+            if (updateData.numberInventory !== undefined && updateData.numberInventory !== oldValues.numberInventory) {
+                changes.push(`inventario de "${oldValues.numberInventory}" a "${updateData.numberInventory}"`);
+            }
+
+            if (changes.length > 0) {
+                await this.historyService.createHistory(
+                    req.user?.username,
+                    `Actualizó el equipo ${oldValues.name}: ${changes.join(', ')}`
+                );
+            }
+
+            return equipment;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al actualizar el equipo.', e.message);
         }
     }
 
-    async deleteEquipment(req: Request, name: string) {
+    async deleteEquipment(req: Request, id: string) {
         try {
-            if (!name) {
-                throw new HttpException('Debe proporcionar un nombre de equipo.', HttpStatus.BAD_REQUEST);
+            if (!id) {
+                throw new HttpException('Debe proporcionar un ID de equipo.', HttpStatus.BAD_REQUEST);
             }
 
-            const equipment = await this.equipmentModel.findOne({ name }).exec();
+            const equipment = await this.equipmentModel.findById(id).exec();
             if (!equipment) {
                 throw new HttpException('El equipo no existe.', HttpStatus.NOT_FOUND);
             }
 
-            await this.equipmentModel.deleteOne({ name }).exec();
+            await this.historyService.createHistory(
+                req.user?.username,
+                `Eliminó el equipo ${equipment.name} (${equipment.brand} ${equipment.model}), ` +
+                `serial: ${equipment.serial || 'N/A'}, inventario: ${equipment.numberInventory || 'N/A'}`
+            );
+
+            await this.equipmentModel.findByIdAndDelete(id).exec();
             return { message: 'Equipo eliminado correctamente.' };
         } catch (e) {
             if (e instanceof HttpException) throw e;

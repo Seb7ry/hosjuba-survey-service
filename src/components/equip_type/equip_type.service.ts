@@ -33,7 +33,14 @@ export class EquipTypeService {
             if (existingEquipType) throw new HttpException('El nombre del tipo de equipo ya existe.', HttpStatus.BAD_REQUEST);
 
             const equipType = new this.equipTypeModel({ name });
-            return await equipType.save();
+            await equipType.save();
+
+            await this.historyService.createHistory(
+                req.user.username,
+                `Creó el tipo de equipo "${name}".`
+            );
+
+            return equipType;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al crear un tipo de equipo.', e.message);
@@ -51,7 +58,14 @@ export class EquipTypeService {
             }
 
             equipType.name = newName;
-            return await equipType.save();
+            await equipType.save();
+
+            await this.historyService.createHistory(
+                req.user.username,
+                `Actualizó el tipo de equipo de "${lastName}" a "${newName}".`
+            );
+
+            return equipType;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al actualizar el tipo de equipo.', e.message);
@@ -66,6 +80,12 @@ export class EquipTypeService {
             if (!equipType) throw new HttpException('El tipo de equipo no existe.', HttpStatus.NOT_FOUND);
 
             await this.equipTypeModel.deleteOne({ name }).exec();
+
+            await this.historyService.createHistory(
+                req.user.username,
+                `Eliminó el tipo de equipo "${name}".`
+            );
+
             return { message: 'Tipo de equipo eliminado correctamente.' };
         } catch (e) {
             if (e instanceof HttpException) throw e;

@@ -37,22 +37,22 @@ export class EquipmentController {
         );
     }
 
-    @Put(':name')
+    @Put(':id')
     @UseGuards(AuthGuard)
     async updateEquipment(
         @Req() req: Request,
-        @Param('name') name: string,
+        @Param('id') id: string,
         @Body() updateData: any,
     ) {
-        return this.equipmentService.updateEquipment(req, name, updateData);
+        return this.equipmentService.updateEquipment(req, id, updateData);
     }
 
-    @Delete(':name')
+    @Delete(':id')
     @UseGuards(AuthGuard)
     async deleteEquipment(
         @Req() req: Request,
-        @Param('name') name: string,
+        @Param('id') id: string,
     ) {
-        return this.equipmentService.deleteEquipment(req, name);
+        return this.equipmentService.deleteEquipment(req, id);
     }
 }

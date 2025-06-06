@@ -10,7 +10,7 @@ dotenv.config();
 
 @Injectable()
 export class HistoryService {
-    constructor(@InjectModel(History.name) private historyModel: Model<HistoryDocument>){ }
+    constructor(@InjectModel(History.name) private historyModel: Model<HistoryDocument>) { }
 
     async createHistory(
         username: string,
@@ -23,12 +23,12 @@ export class HistoryService {
             username,
             message,
         });
-        
+
         return history.save();
     }
 
     async getAllHistory() {
-        return this.historyModel.find().exec();
+        return this.historyModel.find().sort({ timestamp: -1 }).exec();
     }
 
     async getHistoryFilter(
@@ -40,44 +40,33 @@ export class HistoryService {
         if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
             throw new Error('La fecha inicial no puede ser posterior a la fecha final.');
         }
-    
+
         const filter: any = {};
-        let text = 'Filtros:';
-    
+
         if (username) {
             filter.username = username;
-            text += ` usuario: ${username}`;
         }
 
         if (startDate && !endDate) {
             const start = new Date(startDate);
-            start.setUTCHours(0, 0, 0, 0); 
+            start.setUTCHours(0, 0, 0, 0);
             filter.timestamp = { $gte: start };
 
             const end = new Date(startDate);
-            end.setUTCHours(23, 59, 59, 999); 
+            end.setUTCHours(23, 59, 59, 999);
             filter.timestamp.$lte = end;
-
-            text += ` fecha inicial: ${startDate}`;
         }
-    
+
         if (startDate && endDate) {
             const start = new Date(startDate);
             start.setUTCHours(0, 0, 0, 0);
             filter.timestamp = { $gte: start };
-    
+
             const end = new Date(endDate);
-            end.setUTCHours(23, 59, 59, 999); 
+            end.setUTCHours(23, 59, 59, 999);
             filter.timestamp.$lte = end;
+        }
 
-            text += ` fecha inicial: ${startDate} fecha final: ${endDate}`;
-        }  
-
-        this.createHistory(
-            `${req.body.username}`, 
-            `El usuario buscó un registro en el historial. ` + text + '.'
-        );
-    
         return this.historyModel.find(filter).exec();
-    }    
+    }
 }

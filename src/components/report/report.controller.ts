@@ -1,20 +1,24 @@
-// src/reports/report.controller.ts
 import {
   Controller,
   Get,
   Query,
   Res,
   BadRequestException,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ReportService, TimeInterval } from './report.service';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { AuthGuard } from '../authentication/auth.guard';
 
 @Controller('report')
 export class ReportController {
-  constructor(private readonly reportService: ReportService) {}
+  constructor(private readonly reportService: ReportService) { }
 
   @Get('generate')
+  @UseGuards(AuthGuard)
   async generateReport(
+    @Req() req: Request,
     @Query('type') type: 'Mantenimiento' | 'Preventivo',
     @Query('interval') interval: TimeInterval,
     @Query('year') year: string,
@@ -38,6 +42,7 @@ export class ReportController {
       type,
       interval,
       res,
+      req,
       parsedYear,
       parsedStart,
       parsedEnd,

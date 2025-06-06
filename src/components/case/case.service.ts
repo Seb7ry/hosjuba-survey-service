@@ -6,6 +6,8 @@ import * as dotenv from 'dotenv';
 import { DeletedCase, DeletedCaseDocument } from './deleted-case.model';
 import { CasePreventive, CasePreventiveDocument } from './case.preventive.model';
 import { CaseCorrective, CaseCorrectiveDocument } from './case.corrective.model';
+import { HistoryService } from '../history/history.service';
+import { Request } from 'express';
 
 dotenv.config();
 
@@ -36,15 +38,17 @@ export class CaseService {
         @InjectModel(CasePreventive.name) private readonly preventiveModel: Model<CasePreventiveDocument>,
         @InjectModel(CaseCorrective.name) private readonly correctiveModel: Model<CaseCorrectiveDocument>,
         @InjectModel(DeletedCase.name) private readonly deletedCaseModel: Model<DeletedCaseDocument>,
+        private readonly historyService: HistoryService
     ) { }
 
     private getModel(caseType: string): Model<CasePreventiveDocument | CaseCorrectiveDocument> {
         return caseType === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
     }
 
-    async create(caseData: Partial<CasePreventive | CaseCorrective>): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
+    async create(req: Request, caseData: Partial<CasePreventive | CaseCorrective>): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
         try {
             const isPreventive = caseData.typeCase === 'Preventivo';
+
             const caseType = isPreventive ? 'Preventivo' : 'Mantenimiento';
             const model = isPreventive ? this.preventiveModel : this.correctiveModel;
             const currentYear = moment().tz('America/Bogota').year();
@@ -85,21 +89,42 @@ export class CaseService {
                 caseNumber: nextNumber,
             });
 
+            if (isPreventive) {
+                await this.historyService.createHistory(
+                    `${req.user.username}`,
+                    `Ha creado un caso de mantenimiento PREVENTIVO nuevo, número de caso ${newCase.caseNumber}`);
+
+            } else {
+                await this.historyService.createHistory(
+                    `${req.user.username}`,
+                    `Ha creado un caso de mantenimiento CORRECTIVO nuevo, número de caso ${newCase.caseNumber}`);
+            }
+            console.log(req.user)
+
             return await newCase.save();
         } catch (error) {
             throw error;
         }
     }
 
-    async findByCaseNumber(caseNumber: string): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
-        const preventiveCase = await this.preventiveModel.findOne({ caseNumber }).exec();
-        if (preventiveCase) return preventiveCase;
+    async findByCaseNumber(caseNumber: string, typeCase?: 'Preventivo' | 'Mantenimiento'): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
+        if (typeCase === 'Preventivo') {
+            const preventiveCase = await this.preventiveModel.findOne({ caseNumber }).exec();
+            if (preventiveCase) return preventiveCase;
+        } else if (typeCase === 'Mantenimiento') {
+            const correctiveCase = await this.correctiveModel.findOne({ caseNumber }).exec();
+            if (correctiveCase) return correctiveCase;
+        } else {
+            const preventiveCase = await this.preventiveModel.findOne({ caseNumber }).exec();
+            if (preventiveCase) return preventiveCase;
 
-        const correctiveCase = await this.correctiveModel.findOne({ caseNumber }).exec();
-        if (correctiveCase) return correctiveCase;
+            const correctiveCase = await this.correctiveModel.findOne({ caseNumber }).exec();
+            if (correctiveCase) return correctiveCase;
+        }
 
         throw new NotFoundException(`Case with number ${caseNumber} not found`);
     }
+
 
     async search(filters: SearchFilters): Promise<(CasePreventiveDocument | CaseCorrectiveDocument)[]> {
         const query: any = {};
@@ -167,7 +192,7 @@ export class CaseService {
         }
     }
 
-    async update(caseNumber: string, updateData: Partial<CasePreventive | CaseCorrective>): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
+    async update(req: Request, caseNumber: string, updateData: Partial<CasePreventive | CaseCorrective>): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
         const existingCase = await this.findByCaseNumber(caseNumber);
         if (!existingCase) {
             throw new NotFoundException(`Case with number ${caseNumber} not found`);
@@ -180,71 +205,108 @@ export class CaseService {
         const model = existingCase.typeCase === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
 
         const updatedCase = await model.findOneAndUpdate(
-            { caseNumber }, 
+            { caseNumber },
             updateData,
-            { new: true, runValidators: true } 
+            { new: true, runValidators: true }
         ).exec();
 
         if (!updatedCase) {
             throw new NotFoundException(`Case with number ${caseNumber} not found after update attempt`);
         }
 
+        await this.historyService.createHistory(
+            req.user.username,
+            `Ha actualizado el caso ${caseNumber} de mantenimiento ${existingCase.typeCase === 'Mantenimiento' ? 'CORRECTIVO' : existingCase.typeCase.toUpperCase()
+            }`
+        );
+
         return updatedCase;
     }
 
-    async delete(caseNumber: string): Promise<{ message: string, deletedCase: any }> {
-        const existingCase = await this.findByCaseNumber(caseNumber);
-        if (!existingCase) {
-            throw new NotFoundException(`Case with number ${caseNumber} not found`);
+    async delete(
+        req: Request,
+        caseNumber: string,
+        typeCase: 'Preventivo' | 'Mantenimiento'
+    ): Promise<{ message: string; deletedCase: any }> {
+
+        let model;
+
+        if (typeCase === 'Preventivo') {
+            model = this.preventiveModel;
+        } else {
+            model = this.correctiveModel;
         }
 
-        const model = existingCase.typeCase === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
+        const existingCase = await model.findOne({ caseNumber });
+
+        if (!existingCase) {
+            throw new NotFoundException(`No se encontró el caso número ${caseNumber} en ${typeCase}`);
+        }
 
         const deletedCaseRecord = await this.deletedCaseModel.create({
             originalCase: existingCase.toObject(),
             deletedAt: new Date(),
-            deletedBy: 'system', 
-            originalCollection: existingCase.typeCase === 'Preventivo' ? 'preventive' : 'corrective'
+            deletedBy: 'system',
+            originalCollection: typeCase
         });
 
         const deletionResult = await model.deleteOne({ caseNumber });
 
         if (deletionResult.deletedCount === 0) {
             await this.deletedCaseModel.deleteOne({ _id: deletedCaseRecord._id });
-            throw new Error('Failed to delete case');
+            throw new Error('No se pudo eliminar el caso');
         }
 
+        await this.historyService.createHistory(
+            req.user.username,
+            `Ha eliminado el caso ${caseNumber} de mantenimiento ${typeCase === 'Mantenimiento' ? 'CORRECTIVO' : typeCase.toUpperCase()
+            }`
+        );
+
         return {
-            message: 'Case deleted successfully',
+            message: 'Caso eliminado correctamente',
             deletedCase: deletedCaseRecord
         };
     }
 
-    async getDeletedCases(caseNumber?: string): Promise<DeletedCaseDocument[] | DeletedCaseDocument | null> {
+    async getDeletedCases(req: Request, caseNumber?: string): Promise<DeletedCaseDocument[] | DeletedCaseDocument | null> {
         if (caseNumber) {
             return this.deletedCaseModel.findOne({ 'originalCase.caseNumber': caseNumber }).lean().exec();
         }
-
         return this.deletedCaseModel.find().sort({ deletedAt: -1 }).lean().exec();
     }
 
-    async restoreDeletedCase(caseNumber: string): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
+    async restoreDeletedCase(req: Request, caseNumber: string): Promise<CasePreventiveDocument | CaseCorrectiveDocument> {
         const deleted = await this.deletedCaseModel.findOne({ 'originalCase.caseNumber': caseNumber }).lean();
 
         if (!deleted) {
             throw new NotFoundException(`No se encontró un caso eliminado con número ${caseNumber}`);
         }
 
-        let baseNumber = deleted.originalCase.caseNumber.toString();
-        let restoredNumber = baseNumber + 'R';
-        let suffix = 1;
+        const model = deleted.originalCase.typeCase === 'Preventivo'
+            ? this.preventiveModel
+            : this.correctiveModel;
 
-        while (
-            await this.preventiveModel.findOne({ caseNumber: restoredNumber }) ||
-            await this.correctiveModel.findOne({ caseNumber: restoredNumber })
-        ) {
-            restoredNumber = baseNumber + 'R' + suffix;
-            suffix++;
+        const baseNumber = deleted.originalCase.caseNumber.toString();
+
+        const existingCaseInSameCollection = await model.findOne({ caseNumber: baseNumber });
+
+        let restoredNumber = baseNumber;
+
+        if (existingCaseInSameCollection) {
+            let suffix = 1;
+
+            while (true) {
+                const potentialNumber = `${baseNumber}(${suffix})`;
+
+                const existsInSameCollection = await model.findOne({ caseNumber: potentialNumber });
+                if (!existsInSameCollection) {
+                    restoredNumber = potentialNumber;
+                    break;
+                }
+
+                suffix++;
+            }
         }
 
         const restoredData = {
@@ -253,11 +315,16 @@ export class CaseService {
             _id: undefined
         };
 
-        const model = deleted.originalCase.typeCase === 'Preventivo' ? this.preventiveModel : this.correctiveModel;
         const restoredCase = new model(restoredData);
         await restoredCase.save();
         await this.deletedCaseModel.deleteOne({ _id: deleted._id });
 
+        await this.historyService.createHistory(
+            req.user?.username || 'sistema',
+            `Ha restaurado el caso ${caseNumber} como ${restoredNumber} de mantenimiento ${deleted.originalCase.typeCase === 'Mantenimiento' ? 'CORRECTIVO' : 'PREVENTIVO'}`
+        );
+
         return restoredCase;
     }
+
 }

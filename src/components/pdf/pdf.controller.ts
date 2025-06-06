@@ -1,16 +1,17 @@
-// src/pdf/pdf.controller.ts
-import { Controller, Post, Body, Res, HttpStatus, Param } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Post, Body, Res, HttpStatus, Param, Req, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { PdfService } from './pdf.service';
+import { AuthGuard } from '../authentication/auth.guard';
 
 @Controller('pdf')
 export class PdfController {
   constructor(private readonly pdfService: PdfService) { }
 
   @Post('preventive/:caseNumber')
-  async generatePreventive(@Param('caseNumber') caseNumber: string, @Res() res: Response) {
+  @UseGuards(AuthGuard)
+  async generatePreventive(@Param('caseNumber') caseNumber: string, @Req() req: Request, @Res() res: Response) {
     try {
-      const buffer = await this.pdfService.generatePreventivePdf(caseNumber);
+      const buffer = await this.pdfService.generatePreventivePdf(req, caseNumber);
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename=preventive.pdf',
@@ -25,9 +26,10 @@ export class PdfController {
   }
 
   @Post('corrective/:caseNumber')
-  async generateCorrective(@Param('caseNumber') caseNumber: string, @Res() res: Response) {
+  @UseGuards(AuthGuard)
+  async generateCorrective(@Param('caseNumber') caseNumber: string, @Req() req: Request, @Res() res: Response) {
     try {
-      const buffer = await this.pdfService.generateCorrectivePdf(caseNumber);
+      const buffer = await this.pdfService.generateCorrectivePdf(req, caseNumber);
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename=corrective.pdf',

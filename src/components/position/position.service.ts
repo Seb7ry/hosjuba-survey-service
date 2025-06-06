@@ -31,10 +31,16 @@ export class PositionService {
 
             const existingPosition = await this.positionModel.findOne({ name }).exec();
             if (existingPosition) throw new HttpException('El nombre del cargo ya existe.', HttpStatus.BAD_REQUEST);
-            const positionData: Partial<Position> = { name };
 
-            const position = new this.positionModel(positionData);
-            return await position.save();
+            const position = new this.positionModel({ name });
+            await position.save();
+
+            await this.historyService.createHistory(
+                req.user.username,
+                `Creó el cargo "${name}".`
+            );
+
+            return position;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al crear un cargo.', e.message);
@@ -52,8 +58,14 @@ export class PositionService {
             }
 
             position.name = newName;
-            //await this.historyService.createHistory(req.body.username, `Se ha actualizado el usuario ${username}.`);
-            return await position.save();
+            await position.save();
+
+            await this.historyService.createHistory(
+                req.user.username,
+                `Actualizó el cargo de "${currentName}" a "${newName}".`
+            );
+
+            return position;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al actualizar el cargo.', e.message);
@@ -63,12 +75,17 @@ export class PositionService {
     async deletePosition(req: Request, name: string) {
         try {
             if (!name) throw new HttpException('Debe proporcionar un nombre al cargo.', HttpStatus.BAD_REQUEST);
+
             const position = await this.positionModel.findOne({ name }).exec();
             if (!position) throw new HttpException('El cargo no existe.', HttpStatus.NOT_FOUND);
 
             await this.positionModel.deleteOne({ name }).exec();
 
-            // await this.historyService.createHistory(req.body.username, `Se eliminó la dependencia ${name}.`);
+            await this.historyService.createHistory(
+                req.user.username,
+                `Eliminó el cargo "${name}".`
+            );
+
             return { message: 'Cargo eliminado correctamente.' };
         } catch (e) {
             if (e instanceof HttpException) throw e;

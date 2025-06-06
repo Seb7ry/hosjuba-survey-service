@@ -46,7 +46,7 @@ export class UserService {
 
     async listUsers(): Promise<User[]> {
         try {
-            const users = await this.userModel.find().exec();
+            const users = await this.userModel.find().sort({ username: 1 }).lean().exec();
             return users;
         } catch (e) {
             throw new InternalServerErrorException('Error al listar usuarios.', e.message);
@@ -95,7 +95,7 @@ export class UserService {
             }
 
             const user = new this.userModel(userData);
-            //await this.historyService.createHistory(req.body.username, `Se ha creado el usuario ${username}.`);
+            await this.historyService.createHistory(req.user.username, `Se ha creado el usuario ${username}.`);
             return await user.save();
         } catch (e) {
             if (e instanceof HttpException) throw e;
@@ -113,19 +113,53 @@ export class UserService {
             const user = await this.userModel.findOne({ username }).exec();
             if (!user) throw new HttpException('El usuario no existe.', HttpStatus.NOT_FOUND);
 
+            const oldValues = {
+                name: user.name,
+                department: user.department,
+                position: user.position,
+                hasSignature: !!user.signature
+            };
+
             if (updates.name !== undefined) user.name = updates.name;
             if (updates.department !== undefined) user.department = updates.department;
             if (updates.position !== undefined) user.position = updates.position;
             if (updates.password !== undefined) user.password = updates.password;
             if (updates.signature !== undefined) user.signature = updates.signature;
 
-            return await user.save();
+            await user.save();
+
+            const changes: string[] = [];
+
+            if (updates.name !== undefined && updates.name !== oldValues.name) {
+                changes.push(`nombre de "${oldValues.name}" a "${updates.name}"`);
+            }
+            if (updates.department !== undefined && updates.department !== oldValues.department) {
+                changes.push(`departamento de "${oldValues.department}" a "${updates.department}"`);
+            }
+            if (updates.position !== undefined && updates.position !== oldValues.position) {
+                changes.push(`puesto de "${oldValues.position}" a "${updates.position}"`);
+            }
+            if (updates.signature !== undefined) {
+                const newSignatureStatus = updates.signature ? 'añadió firma' : 'eliminó firma';
+                changes.push(newSignatureStatus);
+            }
+            if (updates.password !== undefined) {
+                changes.push('actualizó la contraseña');
+            }
+
+            if (changes.length > 0) {
+                await this.historyService.createHistory(
+                    req.user?.['username'] || 'sistema',
+                    `Actualizó el usuario ${username}: ${changes.join(', ')}`
+                );
+            }
+
+            return user;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al actualizar el usuario.', e.message);
         }
     }
-
 
     async deleteUser(req: Request, username: string) {
         try {
@@ -137,10 +171,10 @@ export class UserService {
 
             await this.userModel.deleteOne({ _id: username }).exec();
 
-            //await this.historyService.createHistory(
-            //    req.body.username,
-            //    `Se ha eliminado el usuario ${username}.`
-            //);
+            await this.historyService.createHistory(
+                req.user.username,
+                `Se ha eliminado el usuario ${username}.`
+            );
 
             return { message: 'Usuario eliminado correctamente.' };
         } catch (e) {

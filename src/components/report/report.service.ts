@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Workbook } from 'exceljs';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { CaseService } from '../case/case.service';
 import * as moment from 'moment';
 import { CorrectiveReport } from './formats/corrective.report';
 import { PreventiveReport } from './formats/preventive.report';
+import { HistoryService } from '../history/history.service';
 
 export type TimeInterval =
     | 'anual'
@@ -18,7 +19,8 @@ export class ReportService {
     constructor(
         private readonly caseService: CaseService,
         private readonly correctiveReport: CorrectiveReport,
-        private readonly preventiveReport: PreventiveReport
+        private readonly preventiveReport: PreventiveReport,
+        private readonly historyService: HistoryService,
     ) { }
 
     private getDateRange(
@@ -81,10 +83,10 @@ export class ReportService {
     }
 
     async generateReport(
-        
         type: 'Mantenimiento' | 'Preventivo',
         interval: TimeInterval,
         res: Response,
+        req: Request,
         year?: number,
         customStart?: Date,
         customEnd?: Date,
@@ -98,9 +100,15 @@ export class ReportService {
             typeCase: type,
         });
 
+        const reportLabel = type === 'Mantenimiento' ? 'Correctivo' : 'Preventivo';
+
+        await this.historyService.createHistory(
+            req.user?.username || 'Desconocido',
+            `Generó un reporte ${reportLabel} con intervalo "${interval}" desde ${moment(start).format('DD/MM/YY')} hasta ${moment(end).format('DD/MM/YY')}.`
+        );
+
         return this.generateExcelReport(type, cases, res);
     }
-
 
     private async generateExcelReport(type: string, cases: any[], res: Response) {
         const workbook = new Workbook();

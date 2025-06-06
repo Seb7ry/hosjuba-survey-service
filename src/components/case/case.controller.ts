@@ -13,7 +13,18 @@ export class CaseController {
     @UseGuards(AuthGuard)
     async create(@Req() req: Request, @Body() caseData: Partial<CasePreventive | CaseCorrective>) {
         try {
-            return await this.caseService.create(caseData);
+            return await this.caseService.create(req, caseData);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
+
+    @Get('deleted')
+    @UseGuards(AuthGuard)
+    async getDeletedCases(@Req() req: Request, @Query('caseNumber') caseNumber?: string) {
+        try {
+            return await this.caseService.getDeletedCases(req, caseNumber);
         } catch (error) {
             throw new BadRequestException(error.message);
         }
@@ -21,9 +32,13 @@ export class CaseController {
 
     @Get(':caseNumber')
     @UseGuards(AuthGuard)
-    async getCase(@Req() req: Request, @Param('caseNumber') caseNumber: string) {
+    async getCase(
+        @Req() req: Request,
+        @Param('caseNumber') caseNumber: string,
+        @Query('typeCase') typeCase?: 'Preventivo' | 'Mantenimiento'
+    ) {
         try {
-            return await this.caseService.findByCaseNumber(caseNumber);
+            return await this.caseService.findByCaseNumber(caseNumber, typeCase);
         } catch (error) {
             throw new BadRequestException(error.message);
         }
@@ -32,6 +47,7 @@ export class CaseController {
     @Get()
     @UseGuards(AuthGuard)
     async search(
+        @Req() req: Request,
         @Query('caseNumber') caseNumber?: string,
         @Query('serviceType') serviceType?: string,
         @Query('dependency') dependency?: string,
@@ -76,39 +92,28 @@ export class CaseController {
 
     @Put(':id')
     @UseGuards(AuthGuard)
-    async update(@Param('id') id: string, @Body() updateData: Partial<CasePreventive | CaseCorrective>) {
+    async update(@Req() req: Request, @Param('id') id: string, @Body() updateData: Partial<CasePreventive | CaseCorrective>) {
         try {
-            return await this.caseService.update(id, updateData);
+            return await this.caseService.update(req, id, updateData);
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
-
-    @Delete(':id')
+    @Delete(':caseNumber')
     @UseGuards(AuthGuard)
-    async delete(@Param('id') id: string) {
-        try {
-            return await this.caseService.delete(id);
-        } catch (error) {
-            throw new BadRequestException(error.message);
-        }
-    }
-
-    @Get('deleted')
-    @UseGuards(AuthGuard)
-    async getDeletedCases(@Query('caseNumber') caseNumber?: string) {
-        try {
-            return await this.caseService.getDeletedCases(caseNumber);
-        } catch (error) {
-            throw new BadRequestException(error.message);
-        }
+    async deleteCase(
+        @Req() req: Request,
+        @Param('caseNumber') caseNumber: string,
+        @Body('typeCase') typeCase: 'Preventivo' | 'Mantenimiento'
+    ) {
+        return this.caseService.delete(req, caseNumber, typeCase);
     }
 
     @Post('restore/:caseNumber')
     @UseGuards(AuthGuard)
-    async restoreDeletedCase(@Param('caseNumber') caseNumber: string) {
+    async restoreDeletedCase(@Req() req: Request, @Param('caseNumber') caseNumber: string) {
         try {
-            return await this.caseService.restoreDeletedCase(caseNumber);
+            return await this.caseService.restoreDeletedCase(req, caseNumber);
         } catch (error) {
             throw new BadRequestException(error.message);
         }

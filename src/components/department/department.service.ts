@@ -34,8 +34,14 @@ export class DepartmentService {
             const departmentData: Partial<Department> = { name };
 
             const department = new this.departmentModel(departmentData);
+            await department.save();
 
-            return await department.save();
+            await this.historyService.createHistory(
+                req.user.username,
+                `Creó la dependencia "${name}".`
+            );
+
+            return department;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al crear una dependencia.', e.message);
@@ -53,8 +59,14 @@ export class DepartmentService {
             }
 
             department.name = newName;
-            //await this.historyService.createHistory(req.body.username, `Se ha actualizado el usuario ${username}.`);
-            return await department.save();
+            await department.save();
+
+            await this.historyService.createHistory(
+                req.user.username,
+                `Actualizó la dependencia de "${currentName}" a "${newName}".`
+            );
+
+            return department;
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new InternalServerErrorException('Error al actualizar la dependencia.', e.message);
@@ -69,7 +81,11 @@ export class DepartmentService {
 
             await this.departmentModel.deleteOne({ name }).exec();
 
-            // await this.historyService.createHistory(req.body.username, `Se eliminó la dependencia ${name}.`);
+            await this.historyService.createHistory(
+                req.user.username,
+                `Eliminó la dependencia "${name}".`
+            );
+
             return { message: 'Dependencia eliminada correctamente.' };
         } catch (e) {
             if (e instanceof HttpException) throw e;
